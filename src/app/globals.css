@@ -1,0 +1,174 @@
+/* =====================================================================
+   globals.css — Tortas da Lika (Padaria / Confeitaria Artesanal)
+   Next.js 16 + Tailwind CSS v4 (configuração via CSS, sem tailwind.config.js)
+   ---------------------------------------------------------------------
+   👋 Olá! Este é o ÚNICO lugar onde você edita as cores da marca.
+   Se um dia quiser mudar o vermelho-terracota, o marrom ou o dourado,
+   é só trocar os valores aqui no bloco @theme abaixo. Tudo no site
+   que usar essas cores vai se atualizar automaticamente. 🎂
+   ===================================================================== */
+
+/* Importa o Tailwind CSS v4 — precisa ser a PRIMEIRA linha do arquivo */
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------
+   @theme — Paleta de cores da marca e tokens visuais do projeto
+   ---------------------------------------------------------------------
+   Aqui definimos as cores usando variáveis CSS no formato
+   --color-<nome>. O Tailwind v4 transforma cada uma delas em
+   utilitários prontos, tipo:
+
+     bg-brand-primary   -> fundo terracota
+     text-brand-secondary -> texto marrom chocolate
+     border-brand-accent  -> borda dourada
+
+   📌 Lembrete: Mude as cores da marca APENAS aqui. Não espalhe
+   hexadecimais pelo resto do projeto, combinado? 😉
+   --------------------------------------------------------------------- */
+@theme {
+  /* === Cor primária da marca (terracota / laranja terroso) =========
+     Usada em botões principais, destaques, logo e elementos fortes. */
+  --color-brand-primary: #c1673b;       /* terracota principal */
+  --color-brand-primary-light: #d98a63; /* tom mais claro (hovers, suaves) */
+  --color-brand-primary-dark: #a44e2a;  /* tom mais escuro (hovers ativos) */
+
+  /* === Cor secundária (marrom chocolate escuro) ====================
+     Usada em textos principais, títulos e detalhes de contraste. */
+  --color-brand-secondary: #4a2e1f;       /* marrom chocolate */
+  --color-brand-secondary-light: #6b4631; /* marrom mais suave para textos secundários */
+
+  /* === Cor de fundo (creme / off-white quente) =====================
+     Fundo geral do site, cards e áreas claras. */
+  --color-brand-background: #fbf3e7;       /* creme principal */
+  --color-brand-background-soft: #f5ead8; /* creme um pouco mais escuro para seções alternadas */
+
+  /* === Cor de destaque (dourado / mostarda) ========================
+     Usada em pequenos acentos: badges, ícones, sublinhados, selos. */
+  --color-brand-accent: #d9a441;       /* dourado mostarda */
+  --color-brand-accent-light: #e8c074; /* dourado claro para hovers suaves */
+
+  /* === Neutros (cinzas para textos e bordas) =======================
+     Mantemos uma escala neutra para textos comuns, bordas e divisórias. */
+  --color-neutral-50: #fafafa;
+  --color-neutral-100: #f4f4f4;
+  --color-neutral-200: #e5e5e5;
+  --color-neutral-300: #d4d4d4;
+  --color-neutral-400: #a3a3a3;
+  --color-neutral-500: #737373;
+  --color-neutral-600: #525252;
+  --color-neutral-700: #404040;
+  --color-neutral-800: #262626;
+  --color-neutral-900: #171717;
+}
+
+/* ---------------------------------------------------------------------
+   Base global — mantemos o padrão simples do Next.js para a fonte do body.
+   O Tailwind v4 já aplica um reset bacana, então aqui só ajustamos o básico.
+   --------------------------------------------------------------------- */
+body {
+  /* Fonte padrão do projeto (o Next.js costuma usar a system stack).
+     Se quiser trocar por uma fonte do next/font, ajuste aqui depois. */
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+  /* Fundo creme da marca como padrão das páginas */
+  background-color: var(--color-brand-background);
+
+  /* Texto padrão em marrom chocolate para combinar com a identidade */
+  color: var(--color-brand-secondary);
+}
+
+/* =====================================================================
+   ANIMACOES GLOBAIS — Replicam o estilo da home page
+   ===================================================================== */
+
+/* Fade up com translateY — usado no hero e secoes principais */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Fade in simples — para aparecimento suave */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Scale in — para cards e elementos que entram com zoom suave */
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Classes utilitarias de animacao */
+.animar-fade-up {
+  opacity: 0;
+  animation: fadeUp 0.6s ease forwards;
+}
+
+.animar-fade-in {
+  opacity: 0;
+  animation: fadeIn 0.5s ease forwards;
+}
+
+.animar-scale-in {
+  opacity: 0;
+  animation: scaleIn 0.5s ease forwards;
+}
+
+/* Atrasos escalonados — use .animar-atraso-1, .animar-atraso-2, etc. */
+.animar-atraso-1 { animation-delay: 0.1s; }
+.animar-atraso-2 { animation-delay: 0.2s; }
+.animar-atraso-3 { animation-delay: 0.3s; }
+.animar-atraso-4 { animation-delay: 0.4s; }
+.animar-atraso-5 { animation-delay: 0.5s; }
+.animar-atraso-6 { animation-delay: 0.6s; }
+.animar-atraso-7 { animation-delay: 0.7s; }
+.animar-atraso-8 { animation-delay: 0.8s; }
+
+/* Hover card — eleva o card com sombra e borda dourada */
+.hover-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+  cursor: pointer;
+}
+
+.hover-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 32px rgba(74, 46, 31, 0.12);
+  border-color: var(--color-brand-accent);
+}
+
+/* Hover imagem — zoom suave ao passar o mouse */
+.hover-imagem {
+  overflow: hidden;
+}
+
+.hover-imagem img {
+  transition: transform 0.4s ease;
+}
+
+.hover-imagem:hover img {
+  transform: scale(1.05);
+}
+
+/* Botoes com hover suave */
+.botao-hover {
+  transition: all 0.3s ease;
+}
+
+.botao-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(193, 103, 59, 0.3);
+} 
