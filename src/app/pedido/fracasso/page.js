@@ -1,9 +1,10 @@
 'use client'
 
+import { Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
-export default function PagamentoFracassoPage() {
+function PagamentoFracassoContent() {
   const searchParams = useSearchParams()
   const paymentId = searchParams.get('payment_id')
   const status = searchParams.get('status')
@@ -93,5 +94,13 @@ export default function PagamentoFracassoPage() {
         </Link>
       </div>
     </div>
+  )
+}
+
+export default function PagamentoFracassoPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 40, textAlign: 'center', fontFamily: 'Arial, sans-serif' }}>Carregando...</div>}>
+      <PagamentoFracassoContent />
+    </Suspense>
   )
 }
