@@ -1,16 +1,17 @@
-'use client';
+'use client'
 
-import { useSearchParams } from 'next/navigation';
-import Link from 'next/link';
+import { Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 
-export default function PedidoSucessoPage() {
-  const searchParams = useSearchParams();
+function PedidoSucessoContent() {
+  const searchParams = useSearchParams()
 
-  const paymentId = searchParams.get('payment_id');
-  const status = searchParams.get('status');
-  const externalReference = searchParams.get('external_reference');
+  const paymentId = searchParams.get('payment_id')
+  const status = searchParams.get('status')
+  const externalReference = searchParams.get('external_reference')
 
-  const isApproved = status === 'approved';
+  const isApproved = status === 'approved'
 
   const containerStyle = {
     minHeight: '100vh',
@@ -23,7 +24,7 @@ export default function PedidoSucessoPage() {
     fontFamily: 'Arial, Helvetica, sans-serif',
     color: '#4a3728',
     textAlign: 'center',
-  };
+  }
 
   const cardStyle = {
     backgroundColor: '#ffffff',
@@ -32,21 +33,21 @@ export default function PedidoSucessoPage() {
     padding: '40px',
     maxWidth: '480px',
     width: '100%',
-  };
+  }
 
   const titleStyle = {
     fontSize: '28px',
     fontWeight: '700',
     margin: '0 0 16px 0',
     color: '#4a3728',
-  };
+  }
 
   const subtitleStyle = {
     fontSize: '16px',
     lineHeight: '1.6',
     margin: '0 0 24px 0',
     color: '#6b5644',
-  };
+  }
 
   const infoStyle = {
     backgroundColor: '#f7efe6',
@@ -54,7 +55,7 @@ export default function PedidoSucessoPage() {
     padding: '16px',
     margin: '0 0 24px 0',
     textAlign: 'left',
-  };
+  }
 
   const infoRowStyle = {
     display: 'flex',
@@ -63,18 +64,18 @@ export default function PedidoSucessoPage() {
     padding: '6px 0',
     fontSize: '14px',
     borderBottom: '1px solid #e8d9c8',
-  };
+  }
 
   const labelStyle = {
     fontWeight: '600',
     color: '#4a3728',
-  };
+  }
 
   const valueStyle = {
     color: '#6b5644',
     textAlign: 'right',
     wordBreak: 'break-word',
-  };
+  }
 
   const linkStyle = {
     display: 'inline-block',
@@ -86,13 +87,13 @@ export default function PedidoSucessoPage() {
     fontWeight: '600',
     fontSize: '15px',
     transition: 'background-color 0.2s ease',
-  };
+  }
 
   const footerStyle = {
     marginTop: '24px',
     fontSize: '13px',
     color: '#8a7563',
-  };
+  }
 
   return (
     <main style={containerStyle}>
@@ -116,14 +117,17 @@ export default function PedidoSucessoPage() {
           )}
 
           {paymentId && (
-            <div style={infoRowStyle}>
+            <div style={{
+              ...infoRowStyle,
+              borderBottom: paymentId && status ? '1px solid #e8d9c8' : 'none'
+            }}>
               <span style={labelStyle}>ID do pagamento</span>
               <span style={valueStyle}>{paymentId}</span>
             </div>
           )}
 
           {status && (
-            <div style={infoRowStyle} style={{ ...infoRowStyle, borderBottom: 'none' }}>
+            <div style={{ ...infoRowStyle, borderBottom: 'none' }}>
               <span style={labelStyle}>Status</span>
               <span style={valueStyle}>{status}</span>
             </div>
@@ -139,5 +143,13 @@ export default function PedidoSucessoPage() {
         </p>
       </section>
     </main>
-  );
+  )
+}
+
+export default function PedidoSucessoPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 40, textAlign: 'center', fontFamily: 'Arial, sans-serif', color: '#4a3728' }}>Carregando...</div>}>
+      <PedidoSucessoContent />
+    </Suspense>
+  )
 }
