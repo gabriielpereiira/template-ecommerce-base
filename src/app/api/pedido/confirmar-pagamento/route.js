@@ -44,7 +44,6 @@ export async function POST(request) {
   }
 }
 
-// GET - chamado quando o Mercado Pago redireciona o navegador do usuario
 export async function GET(request) {
   const { searchParams } = request.nextUrl
   const status = searchParams.get('status') || searchParams.get('collection_status')
@@ -58,18 +57,25 @@ export async function GET(request) {
         process.env.SUPABASE_SERVICE_ROLE_KEY
       )
 
-      await supabase.from('pedidos').update({
-        status: 'confirmado',
-        pagamento_status: status,
-        atualizado_em: new Date().toISOString()
-      }).eq('id', externalReference)
+      await supabase
+        .from('pedidos')
+        .update({
+          status: 'confirmado',
+          pagamento_status: status,
+          atualizado_em: new Date().toISOString()
+        })
+        .eq('id', externalReference)
 
       if (paymentId) {
         await supabase.from('payments').insert({
-          order_id: externalReference, metodo: 'mercadopago', status: 'approved',
-          valor: null, mercado_pago_id: String(paymentId),
+          order_id: externalReference,
+          metodo: 'mercadopago',
+          status: 'approved',
+          valor: null,
+          mercado_pago_id: String(paymentId),
           mercado_pago_status: 'approved',
-          criado_em: new Date().toISOString(), atualizado_em: new Date().toISOString()
+          criado_em: new Date().toISOString(),
+          atualizado_em: new Date().toISOString()
         }).catch(() => {})
       }
     } catch (e) {
@@ -77,7 +83,6 @@ export async function GET(request) {
     }
   }
 
-  // Redireciona o navegador pra pagina de sucesso
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || request.nextUrl.origin
   const redirectUrl = new URL(`${baseUrl}/pedido/sucesso`)
   if (status) redirectUrl.searchParams.set('status', status)
