@@ -54,6 +54,8 @@ export async function POST(request) {
       })
     }
 
+    const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+
     const client = new MercadoPagoConfig({ accessToken })
     const preference = new Preference(client)
 
@@ -66,12 +68,13 @@ export async function POST(request) {
           phone: cliente_telefone ? { number: cliente_telefone } : undefined,
         },
         back_urls: {
-          success: 'http://localhost:3000/pedido/sucesso',
-          failure: 'http://localhost:3000/pedido/fracasso',
-          pending: 'http://localhost:3000/pedido/pendente',
+          success: `${BASE_URL}/pedido/sucesso`,
+          failure: `${BASE_URL}/pedido/fracasso`,
+          pending: `${BASE_URL}/pedido/pendente`,
         },
+        auto_return: 'approved',
         external_reference: String(pedido_id),
-        notification_url: '',
+        notification_url: `${BASE_URL}/api/pagamento/webhook`,
         statement_descriptor: 'TORTAS DA LIKA',
         metadata: {
           cliente_nome,
@@ -92,6 +95,7 @@ export async function POST(request) {
       },
     })
   } catch (error) {
+    console.error('Erro ao criar pagamento:', error)
     return Response.json(
       { success: false, erro: error.message },
       { status: 500 }
