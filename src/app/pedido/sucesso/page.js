@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
+import { redirect } from 'next/navigation'
 import PedidoSucessoClient from './PedidoSucessoClient'
 
-// CRITICO: sem essa linha o Next.js gera HTML estatico e o searchParams vem vazio
 export const dynamic = 'force-dynamic'
 
 export default async function SucessoPage({ searchParams }) {
@@ -10,6 +10,8 @@ export default async function SucessoPage({ searchParams }) {
   const externalReference = sp?.external_reference
   const paymentId = sp?.payment_id
 
+  let atualizou = false
+
   if (status === 'approved' && externalReference) {
     try {
       const supabase = createClient(
@@ -17,7 +19,7 @@ export default async function SucessoPage({ searchParams }) {
         process.env.SUPABASE_SERVICE_ROLE_KEY
       )
 
-      await supabase
+      const { error } = await supabase
         .from('pedidos')
         .update({
           status: 'confirmado',
@@ -26,8 +28,10 @@ export default async function SucessoPage({ searchParams }) {
         })
         .eq('id', externalReference)
 
-      if (paymentId) {
-        try {
+      if (!error) {
+        atualizou = true
+
+        if (paymentId) {
           await supabase.from('payments').insert({
             order_id: externalReference,
             metodo: 'mercadopago',
@@ -37,14 +41,17 @@ export default async function SucessoPage({ searchParams }) {
             mercado_pago_status: 'approved',
             criado_em: new Date().toISOString(),
             atualizado_em: new Date().toISOString()
-          })
-        } catch (e) {
-          console.error('Erro ao salvar payment record:', e)
+          }).catch(() => {})
         }
       }
     } catch (e) {
       console.error('Erro server-side ao confirmar pagamento:', e)
     }
+  }
+
+  // Se atualizou com sucesso, redireciona direto pros pedidos
+  if (atualizou) {
+    redirect('/pedidos')
   }
 
   return <PedidoSucessoClient />
