@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import PedidoSucessoClient from './PedidoSucessoClient'
 
-// FORCA renderizacao dinamica - sem isso o Next.js pre-renderiza como estatico
+// CRITICO: sem essa linha o Next.js gera HTML estatico e o searchParams vem vazio
 export const dynamic = 'force-dynamic'
 
 export default async function SucessoPage({ searchParams }) {
@@ -17,7 +17,6 @@ export default async function SucessoPage({ searchParams }) {
         process.env.SUPABASE_SERVICE_ROLE_KEY
       )
 
-      // Atualiza o status do pedido no banco
       await supabase
         .from('pedidos')
         .update({
@@ -27,33 +26,18 @@ export default async function SucessoPage({ searchParams }) {
         })
         .eq('id', externalReference)
 
-      // Registra o pagamento na tabela payments
       if (paymentId) {
         try {
-          const { data: existingPayment } = await supabase
-            .from('payments')
-            .select('id')
-            .eq('mercado_pago_id', String(paymentId))
-            .single()
-
-          const paymentRecord = {
+          await supabase.from('payments').insert({
             order_id: externalReference,
             metodo: 'mercadopago',
             status: 'approved',
             valor: null,
             mercado_pago_id: String(paymentId),
             mercado_pago_status: 'approved',
+            criado_em: new Date().toISOString(),
             atualizado_em: new Date().toISOString()
-          }
-
-          if (existingPayment) {
-            await supabase.from('payments').update(paymentRecord).eq('id', existingPayment.id)
-          } else {
-            await supabase.from('payments').insert({
-              ...paymentRecord,
-              criado_em: new Date().toISOString()
-            })
-          }
+          })
         } catch (e) {
           console.error('Erro ao salvar payment record:', e)
         }
