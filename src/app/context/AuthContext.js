@@ -28,6 +28,7 @@ export function AuthProvider({ children }) {
         carregarPerfil(user.id)
       } else {
         setPerfil(null)
+        localStorage.removeItem('user')
         setCarregando(false)
       }
     })
@@ -42,7 +43,16 @@ export function AuthProvider({ children }) {
       .eq('id', userId)
       .single()
 
-    if (data) setPerfil(data)
+    if (data) {
+      setPerfil(data)
+      localStorage.setItem('user', JSON.stringify({ id: data.id, nome: data.nome, email: usuario?.email }))
+    } else {
+      // Se nao achou perfil, tenta salvar ao menos o basico do auth
+      const session = (await supabase.auth.getSession()).data.session
+      if (session?.user) {
+        localStorage.setItem('user', JSON.stringify({ id: session.user.id, email: session.user.email }))
+      }
+    }
     setCarregando(false)
   }
 
@@ -78,12 +88,13 @@ export function AuthProvider({ children }) {
     return { data, error }
   }
 
-  async function logout() {
+   async function logout() {
     setPerfil(null)
     setUsuario(null)
+    localStorage.removeItem('user')
     await supabase.auth.signOut()
   }
-
+  
   return (
     <AuthContext.Provider
       value={{
