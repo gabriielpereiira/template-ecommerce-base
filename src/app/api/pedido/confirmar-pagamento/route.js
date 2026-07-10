@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 
+// POST - chamado pelo useEffect no frontend (fallback)
 export async function POST(request) {
   try {
     const { pedidoId, paymentId, status } = await request.json()
@@ -60,14 +61,14 @@ export async function POST(request) {
   }
 }
 
-// Handler GET - o Mercado Pago redireciona o navegador pra ca
+// GET - chamado pelo Mercado Pago quando redireciona o navegador
 export async function GET(request) {
   const { searchParams } = request.nextUrl
   const status = searchParams.get('status') || searchParams.get('collection_status')
   const externalReference = searchParams.get('external_reference')
   const paymentId = searchParams.get('payment_id') || searchParams.get('collection_id')
 
-  // Atualiza o banco
+  // So atualiza se veio aprovado com ID do pedido
   if (status === 'approved' && externalReference) {
     try {
       const supabase = createClient(
@@ -84,6 +85,7 @@ export async function GET(request) {
         })
         .eq('id', externalReference)
 
+      // Registra pagamento
       if (paymentId) {
         await supabase.from('payments').insert({
           order_id: externalReference,
@@ -101,12 +103,13 @@ export async function GET(request) {
     }
   }
 
-  // Redireciona o navegador pra pagina de sucesso com os mesmos parametros
+  // Monta URL de redirecionamento com os parametros
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || request.nextUrl.origin
   const redirectUrl = new URL(`${baseUrl}/pedido/sucesso`)
-  redirectUrl.searchParams.set('status', status || '')
-  redirectUrl.searchParams.set('external_reference', externalReference || '')
+  if (status) redirectUrl.searchParams.set('status', status)
+  if (externalReference) redirectUrl.searchParams.set('external_reference', externalReference)
   if (paymentId) redirectUrl.searchParams.set('payment_id', paymentId)
 
+  // Redireciona o navegador do usuario pra pagina de sucesso
   return Response.redirect(redirectUrl.toString(), 302)
 }
