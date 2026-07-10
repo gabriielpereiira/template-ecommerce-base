@@ -216,7 +216,7 @@ export default function CarrinhoSidebar() {
       const result = await res.json()
 
       if (result && result.success && result.data && result.data.init_point) {
-        window.location.href = result.data.init_point
+        window.location.href = result.data.sandbox_init_point
       } else {
         setToast((result && result.erro) || 'Erro ao iniciar pagamento')
         setFinalizando(false)
