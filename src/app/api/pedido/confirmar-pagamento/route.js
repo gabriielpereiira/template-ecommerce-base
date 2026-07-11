@@ -37,7 +37,7 @@ export async function POST(request) {
           .single()
 
         if (pedido?.cliente_email) {
-          await resend.emails.send({
+          const result = await resend.emails.send({
             from: 'Tortas da Lika <onboarding@resend.dev>',
             to: pedido.cliente_email,
             subject: 'Pedido Confirmado - Tortas da Lika',
@@ -48,9 +48,12 @@ export async function POST(request) {
               itens: Array.isArray(pedido.itens) ? pedido.itens : []
             })
           })
+          console.log('Email enviado com sucesso:', result)
+        } else {
+          console.log('Pedido sem cliente_email, email nao enviado')
         }
       } catch (emailError) {
-        console.error('Erro ao enviar email:', emailError)
+        console.error('Erro ao enviar email de confirmacao:', emailError)
       }
     }
 
@@ -122,7 +125,7 @@ export async function GET(request) {
           .single()
 
         if (pedido?.cliente_email) {
-          await resend.emails.send({
+          const result = await resend.emails.send({
             from: 'Tortas da Lika <onboarding@resend.dev>',
             to: pedido.cliente_email,
             subject: 'Pedido Confirmado - Tortas da Lika',
@@ -133,6 +136,7 @@ export async function GET(request) {
               itens: Array.isArray(pedido.itens) ? pedido.itens : []
             })
           })
+          console.log('Email enviado com sucesso (GET):', result)
         }
       } catch (emailError) {
         console.error('Erro ao enviar email (GET):', emailError)
