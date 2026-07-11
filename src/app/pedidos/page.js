@@ -6,21 +6,6 @@ import { supabase } from '@/lib/supabaseClient'
 import Header from '../../components/Header'
 import { storeConfig } from '@/config/store'
 
-const COLORS = {
-  dark: '#2D1B0E',
-  gold: '#C4975A',
-  bg: '#FAF7F2',
-  white: '#FFFFFF',
-  textSecondary: '#6B4F3A',
-  border: '#E8E0D8',
-  success: '#4CAF50',
-  warning: '#FF9800',
-  danger: '#c00'
-}
-
-const SERIF = 'Georgia, "Times New Roman", serif'
-const SANS = 'Inter, Arial, sans-serif'
-
 const STATUS_LABELS = {
   pendente: 'Aguardando pagamento',
   confirmado: 'Pagamento confirmado',
@@ -41,7 +26,8 @@ function formatarData(dataISO) {
 }
 
 function formatarPreco(valor) {
-  return 'R$ ' + Number(valor || 0).toFixed(2)
+  if (valor == null) return 'R$ 0,00'
+  return `R$ ${Number(valor).toFixed(2).replace('.', ',')}`
 }
 
 function getStatusLabel(status) {
@@ -52,17 +38,17 @@ function getStatusLabel(status) {
   return STATUS_LABELS[status] || status
 }
 
-function getStatusColor(status) {
-  const colors = {
-    pendente: COLORS.warning,
-    confirmado: COLORS.gold,
-    preparando: '#2196F3',
-    pronto: '#9C27B0',
-    saiu_entrega: '#FF9800',
-    entregue: COLORS.success,
-    cancelado: COLORS.danger
+function getStatusBadgeClass(status) {
+  const map = {
+    pendente: 'badge badge-warning',
+    confirmado: 'badge badge-info',
+    preparando: 'badge badge-info',
+    pronto: 'badge badge-info',
+    saiu_entrega: 'badge badge-info',
+    entregue: 'badge badge-success',
+    cancelado: 'badge badge-canceled'
   }
-  return colors[status] || COLORS.textSecondary
+  return map[status] || 'badge'
 }
 
 export default function PedidosPage() {
@@ -77,7 +63,6 @@ export default function PedidosPage() {
       router.push('/login')
       return
     }
-
     async function carregarPedidos() {
       try {
         const { data, error } = await supabase
@@ -85,7 +70,6 @@ export default function PedidosPage() {
           .select('*')
           .eq('user_id', usuario.id)
           .order('criado_em', { ascending: false })
-
         if (error) {
           console.error('Erro ao carregar pedidos:', error)
           setPedidos([])
@@ -99,95 +83,69 @@ export default function PedidosPage() {
         setCarregando(false)
       }
     }
-
     carregarPedidos()
   }, [usuario, router])
 
   function formatarEndereco(endereco) {
     if (!endereco) return null
     if (typeof endereco === 'string') return endereco
-
-    const parts = []
-    if (endereco.logradouro) parts.push(endereco.logradouro)
-    if (endereco.numero) parts.push(', ' + endereco.numero)
-    if (endereco.complemento) parts.push(' - ' + endereco.complemento)
-    if (endereco.bairro) parts.push('\n' + endereco.bairro)
-    if (endereco.cidade) parts.push(' - ' + endereco.cidade)
-    if (endereco.estado) parts.push('/' + endereco.estado)
-    if (endereco.cep) parts.push('\nCEP: ' + endereco.cep)
-    return parts.join('')
+    try {
+      if (typeof endereco === 'object') {
+        const parts = [endereco.logradouro, endereco.numero, endereco.bairro, endereco.cidade, endereco.estado].filter(Boolean)
+        return parts.join(', ')
+      }
+    } catch { }
+    return String(endereco)
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: COLORS.bg }}>
+    <div style={{ minHeight: '100vh', background: 'var(--color-brand-bg)' }}>
       <Header />
-
       <div style={{ maxWidth: 800, margin: '0 auto', padding: '40px 20px' }}>
         <h1 style={{
-          fontFamily: SERIF,
+          fontFamily: 'Georgia, "Times New Roman", serif',
           fontSize: 28,
-          color: COLORS.dark,
-          marginBottom: 32
+          color: 'var(--color-brand-dark)',
+          marginBottom: 32,
+          fontWeight: 700,
         }}>
           Meus Pedidos
         </h1>
 
         {carregando ? (
           <div style={{ textAlign: 'center', padding: 60 }}>
-            <p style={{ fontFamily: SANS, color: COLORS.textSecondary }}>
-              Carregando pedidos...
-            </p>
+            <div className="skeleton" style={{ width: 200, height: 20, margin: '0 auto 12px' }} />
+            <div className="skeleton" style={{ width: 140, height: 16, margin: '0 auto' }} />
           </div>
         ) : pedidos.length === 0 ? (
-          <div style={{
-            background: COLORS.white,
-            borderRadius: 16,
-            padding: 60,
-            textAlign: 'center',
-            boxShadow: '0 2px 12px rgba(45,27,14,0.06)'
-          }}>
-            <p style={{
-              fontFamily: SERIF,
-              fontSize: 20,
-              color: COLORS.dark,
-              marginBottom: 8
-            }}>
+          <div className="card" style={{ padding: 60, textAlign: 'center' }}>
+            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="var(--color-brand-border)" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 16 }}>
+              <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <path d="M16 10a4 4 0 0 1-8 0" />
+            </svg>
+            <p style={{ fontFamily: 'Georgia, "Times New Roman", serif', fontSize: 20, color: 'var(--color-brand-dark)', marginBottom: 8, fontWeight: 600 }}>
               Nenhum pedido ainda
             </p>
-            <p style={{
-              fontFamily: SANS,
-              fontSize: 14,
-              color: COLORS.textSecondary,
-              marginBottom: 24
-            }}>
+            <p style={{ fontFamily: '"Inter", sans-serif', fontSize: 14, color: 'var(--color-brand-text-secondary)', marginBottom: 24 }}>
               Seu historico de pedidos aparecera aqui.
             </p>
             <button
               onClick={() => router.push('/cardapio')}
-              style={{
-                padding: '12px 28px',
-                borderRadius: '999px',
-                border: 'none',
-                background: COLORS.gold,
-                color: COLORS.white,
-                fontSize: '14px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                fontFamily: SANS
-              }}
+              className="btn btn-gold btn-lg"
             >
               Ver Cardapio
             </button>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {pedidos.map(pedido => (
-              <div key={pedido.id} style={{
-                background: COLORS.white,
-                borderRadius: 16,
+            {pedidos.map((pedido, idx) => (
+              <div key={pedido.id} className="card" style={{
                 overflow: 'hidden',
-                boxShadow: '0 2px 12px rgba(45,27,14,0.06)'
+                animation: `fadeInUp 0.4s ease forwards`,
+                animationDelay: `${Math.min(idx * 0.05, 0.25)}s`,
               }}>
+                {/* Header clicavel */}
                 <div
                   onClick={() => setPedidoExpandido(
                     pedidoExpandido === pedido.id ? null : pedido.id
@@ -197,62 +155,78 @@ export default function PedidosPage() {
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    transition: 'background 0.2s',
                   }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--color-brand-bg-soft)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                 >
                   <div>
                     <p style={{
-                      fontFamily: SERIF,
-                      fontSize: 16,
-                      fontWeight: 700,
-                      color: COLORS.dark,
-                      margin: 0
+                      fontFamily: '"Inter", sans-serif',
+                      fontSize: 15,
+                      fontWeight: 600,
+                      color: 'var(--color-brand-dark)',
+                      margin: 0,
                     }}>
-                      Pedido #{String(pedido.id).slice(0, 8)}
+                      Pedido #{pedido.id?.slice(0, 8)}
                     </p>
                     <p style={{
-                      fontFamily: SANS,
+                      fontFamily: '"Inter", sans-serif',
                       fontSize: 13,
-                      color: COLORS.textSecondary,
-                      margin: '4px 0 0'
+                      color: 'var(--color-brand-text-secondary)',
+                      margin: '4px 0 0',
                     }}>
                       {formatarData(pedido.criado_em)}
+                      {pedido.forma_entrega === 'entrega' ? ' • Entrega' : ' • Retirada'}
                     </p>
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <span style={{
-                      padding: '4px 12px',
-                      borderRadius: 999,
-                      fontSize: 12,
-                      fontWeight: 700,
-                      background: getStatusColor(pedido.status),
-                      color: COLORS.white
-                    }}>
+                    <span className={getStatusBadgeClass(pedido.status)}>
                       {getStatusLabel(pedido.status)}
                     </span>
                     <p style={{
-                      fontFamily: SERIF,
+                      fontFamily: 'Georgia, "Times New Roman", serif',
                       fontSize: 18,
                       fontWeight: 700,
-                      color: COLORS.gold,
-                      margin: 0
+                      color: 'var(--color-brand-gold)',
+                      margin: 0,
                     }}>
                       {formatarPreco(pedido.total)}
                     </p>
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="var(--color-brand-text-secondary)"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      style={{
+                        transition: 'transform 0.3s ease',
+                        transform: pedidoExpandido === pedido.id ? 'rotate(180deg)' : 'rotate(0deg)',
+                      }}
+                    >
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
                   </div>
                 </div>
 
+                {/* Expanded Content */}
                 {pedidoExpandido === pedido.id && (
                   <div style={{
-                    padding: '20px 24px',
-                    borderTop: '1px solid ' + COLORS.border
+                    padding: '0 24px 20px',
+                    borderTop: '1px solid var(--color-brand-border-light)',
+                    animation: 'fadeIn 0.3s ease',
                   }}>
                     <h3 style={{
-                      fontFamily: SERIF,
+                      fontFamily: 'Georgia, "Times New Roman", serif',
                       fontSize: 14,
-                      color: COLORS.dark,
-                      marginBottom: 12
+                      color: 'var(--color-brand-dark)',
+                      margin: '16px 0 12px',
+                      fontWeight: 600,
                     }}>
                       Itens do pedido
                     </h3>
@@ -262,12 +236,12 @@ export default function PedidosPage() {
                         display: 'flex',
                         justifyContent: 'space-between',
                         padding: '8px 0',
-                        borderBottom: idx < pedido.itens.length - 1 ? '1px solid ' + COLORS.border : 'none'
+                        borderBottom: idx < pedido.itens.length - 1 ? '1px solid var(--color-brand-border-light)' : 'none',
                       }}>
-                        <p style={{ fontFamily: SANS, fontSize: 14, color: COLORS.dark, margin: 0 }}>
+                        <p style={{ fontFamily: '"Inter", sans-serif', fontSize: 14, color: 'var(--color-brand-text)', margin: 0 }}>
                           {item.quantidade || 1}x {item.nome || item.title}
                         </p>
-                        <p style={{ fontFamily: SANS, fontSize: 14, color: COLORS.dark, margin: 0 }}>
+                        <p style={{ fontFamily: '"Inter", sans-serif', fontSize: 14, color: 'var(--color-brand-text)', margin: 0, fontWeight: 600 }}>
                           {formatarPreco(
                             (item.preco || item.unit_price || 0) * (item.quantidade || 1)
                           )}
@@ -279,14 +253,21 @@ export default function PedidosPage() {
                       <div style={{
                         display: 'flex',
                         justifyContent: 'space-between',
-                        padding: '8px 0'
+                        padding: '8px 0',
                       }}>
-                        <p style={{ fontFamily: SANS, fontSize: 14, color: COLORS.textSecondary, margin: 0 }}>
-                          Frete
-                        </p>
-                        <p style={{ fontFamily: SANS, fontSize: 14, color: COLORS.textSecondary, margin: 0 }}>
-                          {formatarPreco(pedido.valor_frete)}
-                        </p>
+                        <p style={{ fontFamily: '"Inter", sans-serif', fontSize: 14, color: 'var(--color-brand-text-secondary)', margin: 0 }}>Frete</p>
+                        <p style={{ fontFamily: '"Inter", sans-serif', fontSize: 14, color: 'var(--color-brand-text-secondary)', margin: 0 }}>{formatarPreco(pedido.valor_frete)}</p>
+                      </div>
+                    )}
+
+                    {(pedido.desconto || 0) > 0 && (
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        padding: '8px 0',
+                      }}>
+                        <p style={{ fontFamily: '"Inter", sans-serif', fontSize: 14, color: '#16A34A', margin: 0 }}>Desconto</p>
+                        <p style={{ fontFamily: '"Inter", sans-serif', fontSize: 14, color: '#16A34A', margin: 0 }}>-{formatarPreco(pedido.desconto)}</p>
                       </div>
                     )}
 
@@ -294,37 +275,25 @@ export default function PedidosPage() {
                       display: 'flex',
                       justifyContent: 'space-between',
                       padding: '12px 0 0',
-                      borderTop: '2px solid ' + COLORS.border,
-                      marginTop: 8
+                      borderTop: '2px solid var(--color-brand-border)',
+                      marginTop: 8,
                     }}>
-                      <p style={{ fontFamily: SERIF, fontSize: 16, fontWeight: 700, color: COLORS.dark, margin: 0 }}>
+                      <p style={{ fontFamily: 'Georgia, "Times New Roman", serif', fontSize: 16, fontWeight: 700, color: 'var(--color-brand-dark)', margin: 0 }}>
                         Total
                       </p>
-                      <p style={{ fontFamily: SERIF, fontSize: 16, fontWeight: 700, color: COLORS.gold, margin: 0 }}>
+                      <p style={{ fontFamily: 'Georgia, "Times New Roman", serif', fontSize: 16, fontWeight: 700, color: 'var(--color-brand-gold)', margin: 0 }}>
                         {formatarPreco(pedido.total)}
                       </p>
                     </div>
 
                     {pedido.endereco_entrega && (
-                      <div style={{ marginTop: 16, padding: 12, background: COLORS.bg, borderRadius: 8 }}>
-                        <p style={{
-                          fontFamily: SANS,
-                          fontSize: 12,
-                          fontWeight: 700,
-                          color: COLORS.textSecondary,
-                          marginBottom: 4
-                        }}>
-                          {pedido.forma_entrega === 'retirar'
+                      <div style={{ marginTop: 16, padding: 14, background: 'var(--color-brand-bg)', borderRadius: 10, border: '1px solid var(--color-brand-border-light)' }}>
+                        <p style={{ fontFamily: '"Inter", sans-serif', fontSize: 12, fontWeight: 700, color: 'var(--color-brand-text-secondary)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+                          {pedido.forma_entrega === 'retirar' || pedido.forma_entrega === 'retirada'
                             ? 'Retirada no local'
                             : 'Endereco de entrega'}
                         </p>
-                        <p style={{
-                          fontFamily: SANS,
-                          fontSize: 13,
-                          color: COLORS.dark,
-                          margin: 0,
-                          whiteSpace: 'pre-line'
-                        }}>
+                        <p style={{ fontFamily: '"Inter", sans-serif', fontSize: 13, color: 'var(--color-brand-text)', margin: 0, whiteSpace: 'pre-line' }}>
                           {formatarEndereco(pedido.endereco_entrega)}
                         </p>
                       </div>
@@ -332,16 +301,10 @@ export default function PedidosPage() {
 
                     {pedido.observacoes && (
                       <div style={{ marginTop: 12 }}>
-                        <p style={{
-                          fontFamily: SANS,
-                          fontSize: 12,
-                          fontWeight: 700,
-                          color: COLORS.textSecondary,
-                          marginBottom: 4
-                        }}>
+                        <p style={{ fontFamily: '"Inter", sans-serif', fontSize: 12, fontWeight: 700, color: 'var(--color-brand-text-secondary)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
                           Observacoes
                         </p>
-                        <p style={{ fontFamily: SANS, fontSize: 13, color: COLORS.dark, margin: 0 }}>
+                        <p style={{ fontFamily: '"Inter", sans-serif', fontSize: 13, color: 'var(--color-brand-text)', margin: 0 }}>
                           {pedido.observacoes}
                         </p>
                       </div>
