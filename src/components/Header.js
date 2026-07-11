@@ -75,7 +75,7 @@ export default function Header() {
           fontWeight: 700,
           color: 'var(--color-brand-dark)',
           textDecoration: 'none',
-          fontFamily: 'Georgia, "Times New Roman", serif',
+          fontFamily: '"Playfair Display", Georgia, serif',
           letterSpacing: '0.3px',
           transition: 'opacity 0.2s',
         }}
@@ -105,7 +105,7 @@ export default function Header() {
                     fontWeight: active ? 600 : 500,
                     textDecoration: 'none',
                     transition: 'all 0.25s ease',
-                    fontFamily: 'inherit',
+                    fontFamily: '"Plus Jakarta Sans", sans-serif',
                   }}
                   onMouseEnter={e => {
                     if (!active) {
@@ -145,6 +145,7 @@ export default function Header() {
               fontSize: 13,
               textDecoration: 'none',
               fontWeight: 500,
+              fontFamily: '"Plus Jakarta Sans", sans-serif',
             }}>
               Pedidos
             </Link>
@@ -153,6 +154,7 @@ export default function Header() {
           {/* Botao Sacolinha */}
           <button
             onClick={handleCarrinho}
+            className="btn btn-ghost-gold"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -165,21 +167,11 @@ export default function Header() {
               fontSize: '13px',
               fontWeight: 600,
               cursor: 'pointer',
-              fontFamily: 'inherit',
+              fontFamily: '"Plus Jakarta Sans", sans-serif',
               transition: 'all 0.25s ease',
               textDecoration: 'none',
               letterSpacing: '0.3px',
               textTransform: 'uppercase',
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.background = 'var(--color-brand-gold)'
-              e.currentTarget.style.color = 'white'
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(196, 151, 90, 0.3)'
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.background = 'transparent'
-              e.currentTarget.style.color = 'var(--color-brand-gold)'
-              e.currentTarget.style.boxShadow = 'none'
             }}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -212,6 +204,7 @@ export default function Header() {
           {usuario ? (
             <button
               onClick={logout}
+              className="btn btn-ghost"
               style={{
                 padding: '8px 16px',
                 borderRadius: 999,
@@ -221,22 +214,14 @@ export default function Header() {
                 fontSize: '13px',
                 fontWeight: 500,
                 cursor: 'pointer',
-                fontFamily: 'inherit',
+                fontFamily: '"Plus Jakarta Sans", sans-serif',
                 transition: 'all 0.25s ease',
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.borderColor = 'var(--color-brand-danger, #EF4444)'
-                e.currentTarget.style.color = 'var(--color-brand-danger, #EF4444)'
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.borderColor = 'var(--color-brand-border)'
-                e.currentTarget.style.color = 'var(--color-brand-text-secondary)'
               }}
             >
               Sair
             </button>
           ) : (
-            <Link href="/login" style={{
+            <Link href="/login" className="btn btn-primary" style={{
               padding: '8px 20px',
               borderRadius: 999,
               border: 'none',
@@ -245,23 +230,12 @@ export default function Header() {
               fontSize: '13px',
               fontWeight: 600,
               cursor: 'pointer',
-              fontFamily: 'inherit',
+              fontFamily: '"Plus Jakarta Sans", sans-serif',
               textDecoration: 'none',
               transition: 'all 0.25s ease',
               letterSpacing: '0.3px',
               boxShadow: '0 2px 8px rgba(45, 27, 14, 0.15)',
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.background = '#3D2212'
-              e.currentTarget.style.boxShadow = '0 4px 16px rgba(45, 27, 14, 0.25)'
-              e.currentTarget.style.transform = 'translateY(-1px)'
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.background = 'var(--color-brand-dark)'
-              e.currentTarget.style.boxShadow = '0 2px 8px rgba(45, 27, 14, 0.15)'
-              e.currentTarget.style.transform = 'none'
-            }}
-            >
+            }}>
               Entrar
             </Link>
           )}

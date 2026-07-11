@@ -17,7 +17,22 @@ export function AuthProvider({ children }) {
         .eq('id', userId)
         .maybeSingle()
 
-      if (data) setPerfil(data)
+      if (data) {
+        setPerfil(data)
+        localStorage.setItem('user', JSON.stringify({
+          id: data.id,
+          nome: data.nome,
+          email: usuario?.email
+        }))
+      } else {
+        const session = (await supabase.auth.getSession()).data.session
+        if (session?.user) {
+          localStorage.setItem('user', JSON.stringify({
+            id: session.user.id,
+            email: session.user.email
+          }))
+        }
+      }
     } catch (err) {
       console.error('Erro ao carregar perfil:', err)
     } finally {
@@ -51,13 +66,29 @@ export function AuthProvider({ children }) {
     return () => listener?.subscription.unsubscribe()
   }, [])
 
+  async function atualizarPerfil(dados) {
+    if (!usuario) return { error: 'Usuario nao logado' }
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .upsert({ id: usuario.id, ...dados, updated_at: new Date().toISOString() })
+        .select()
+        .single()
+
+      if (error) return { error: error.message }
+      if (data) setPerfil(data)
+      return { data }
+    } catch (err) {
+      return { error: err.message }
+    }
+  }
+
   async function cadastrar(email, senha) {
     const { data, error } = await supabase.auth.signUp({
       email,
       password: senha,
-      options: {
-        emailRedirectTo: `${window.location.origin}/login`,
-      },
+      options: { emailRedirectTo: `${window.location.origin}/login` },
     })
     return { data, error }
   }
@@ -77,33 +108,9 @@ export function AuthProvider({ children }) {
     await supabase.auth.signOut()
   }
 
-  async function atualizarPerfil(dados) {
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .upsert({ id: usuario.id, ...dados, updated_at: new Date().toISOString() })
-
-      if (error) throw error
-
-      setPerfil(prev => ({ ...prev, ...dados }))
-      return { success: true }
-    } catch (err) {
-      console.error('Erro ao atualizar perfil:', err)
-      return { success: false, error: err.message }
-    }
-  }
-
   return (
     <AuthContext.Provider
-      value={{
-        usuario,
-        perfil,
-        carregando,
-        cadastrar,
-        login,
-        logout,
-        atualizarPerfil,
-      }}
+      value={{ usuario, perfil, carregando, cadastrar, login, logout, atualizarPerfil }}
     >
       {children}
     </AuthContext.Provider>
