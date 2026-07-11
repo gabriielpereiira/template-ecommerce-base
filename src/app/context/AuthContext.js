@@ -78,7 +78,7 @@ export function AuthProvider({ children }) {
 
   async function cadastrar(email, senha) {
     const { data, error } = await supabase.auth.signUp(
-      { email, password },
+      { email, password: senha },
       { emailRedirectTo: `${window.location.origin}/login` }
     )
     return { data, error }
