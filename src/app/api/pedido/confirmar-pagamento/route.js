@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { emailPedidoConfirmado } from '@/lib/emailPedidoConfirmado'
 
 export async function POST(request) {
   try {
@@ -19,6 +20,42 @@ export async function POST(request) {
       pagamento_status: status,
       atualizado_em: new Date().toISOString()
     }).eq('id', pedidoId)
+
+    // Disparar email se o pagamento foi aprovado
+    if (status === 'approved') {
+      try {
+        const { Resend } = require('resend')
+        const resend = new Resend(process.env.RESEND_API_KEY)
+
+        // Buscar dados completos do pedido
+        const { data: pedido } = await supabase
+          .from('pedidos')
+          .select('cliente_nome, cliente_email, total, itens')
+          .eq('id', pedidoId)
+          .single()
+
+        if (pedido?.cliente_email) {
+          const nomeCliente = pedido.cliente_nome || pedido.cliente_email.split('@')[0]
+          const itens = Array.isArray(pedido.itens) ? pedido.itens : []
+          const total = pedido.total || 0
+
+          await resend.emails.send({
+            from: 'Tortas da Lika <onboarding@resend.dev>',
+            to: pedido.cliente_email,
+            subject: 'Pedido Confirmado - Tortas da Lika',
+            html: emailPedidoConfirmado({
+              nomeCliente,
+              pedidoId,
+              total,
+              itens
+            })
+          })
+        }
+      } catch (emailError) {
+        console.error('Erro ao enviar email de confirmacao:', emailError)
+        // Nao quebra o fluxo principal
+      }
+    }
 
     if (paymentId) {
       const { data: existingPayment } = await supabase.from('payments')
@@ -66,6 +103,38 @@ export async function GET(request) {
         })
         .eq('id', externalReference)
 
+      // Disparar email se o pagamento foi aprovado (GET handler)
+      try {
+        const { Resend } = require('resend')
+        const resend = new Resend(process.env.RESEND_API_KEY)
+
+        const { data: pedido } = await supabase
+          .from('pedidos')
+          .select('cliente_nome, cliente_email, total, itens')
+          .eq('id', externalReference)
+          .single()
+
+        if (pedido?.cliente_email) {
+          const nomeCliente = pedido.cliente_nome || pedido.cliente_email.split('@')[0]
+          const itens = Array.isArray(pedido.itens) ? pedido.itens : []
+
+          await resend.emails.send({
+            from: 'Tortas da Lika <nao-responder@tortasdalika.com.br>',
+            to: pedido.cliente_email,
+            subject: 'Pedido Confirmado - Tortas da Lika',
+            html: emailPedidoConfirmado({
+              nomeCliente,
+              pedidoId: externalReference,
+              total: pedido.total || 0,
+              itens
+            })
+          })
+        }
+      } catch (emailError) {
+        console.error('Erro ao enviar email (GET):', emailError)
+      }
+
+      // Insert na tabela payments (fallback silencioso)
       if (paymentId) {
         try {
           await supabase.from('payments').insert({
@@ -78,9 +147,7 @@ export async function GET(request) {
             criado_em: new Date().toISOString(),
             atualizado_em: new Date().toISOString()
           })
-        } catch (_) {
-          // fallback silencioso
-        }
+        } catch (_) {}
       }
     } catch (e) {
       console.error('Erro no GET confirmar pagamento:', e)
