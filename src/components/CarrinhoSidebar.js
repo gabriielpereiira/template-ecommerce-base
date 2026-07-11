@@ -339,10 +339,10 @@ export default function CarrinhoSidebar() {
               <div style={{ display: 'flex', gap: '8px' }}>
                 <input type="text" value={cupomInput}
                   onChange={(e) => setCupomInput(e.target.value.toUpperCase())}
-                  placeholder="Cupom" maxLength={20}
+                  placeholder="digite o cupom aqui" maxLength={20}
                   style={{
                     flex: 1, padding: '10px 14px', borderRadius: '8px',
-                    border: '1px solid ' + COLORS.border, fontSize: '12px',
+                    border: '1px solid ' + COLORS.border, fontSize: '10px',
                     fontFamily: SANS, color: COLORS.dark, outline: 'none',
                     textTransform: 'uppercase', boxSizing: 'border-box',
                   }}
