@@ -25,7 +25,7 @@ export async function POST(request) {
       })
       .eq('id', pedidoId)
 
-    // Disparar email se o pagamento foi aprovado
+    // Disparar email se pagamento aprovado
     if (status === 'approved') {
       try {
         const resend = new Resend(process.env.RESEND_API_KEY)
@@ -37,19 +37,20 @@ export async function POST(request) {
           .single()
 
         if (pedido?.cliente_email) {
-          const nomeCliente = pedido.cliente_nome || pedido.cliente_email.split('@')[0]
-          const itens = Array.isArray(pedido.itens) ? pedido.itens : []
-          const total = pedido.total || 0
-
           await resend.emails.send({
             from: 'Tortas da Lika <onboarding@resend.dev>',
             to: pedido.cliente_email,
             subject: 'Pedido Confirmado - Tortas da Lika',
-            html: emailPedidoConfirmado({ nomeCliente, pedidoId, total, itens })
+            html: emailPedidoConfirmado({
+              nomeCliente: pedido.cliente_nome || pedido.cliente_email.split('@')[0],
+              pedidoId,
+              total: pedido.total || 0,
+              itens: Array.isArray(pedido.itens) ? pedido.itens : []
+            })
           })
         }
       } catch (emailError) {
-        console.error('Erro ao enviar email de confirmacao:', emailError)
+        console.error('Erro ao enviar email:', emailError)
       }
     }
 
@@ -84,5 +85,86 @@ export async function POST(request) {
   } catch (error) {
     console.error('Erro ao confirmar pagamento:', error)
     return Response.json({ error: error.message }, { status: 500 })
+  }
+}
+
+export async function GET(request) {
+  try {
+    const { searchParams } = request.nextUrl
+    const status = searchParams.get('status') || searchParams.get('collection_status')
+    const externalReference = searchParams.get('external_reference')
+    const paymentId = searchParams.get('payment_id') || searchParams.get('collection_id')
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || request.nextUrl.origin
+
+    if (status === 'approved' && externalReference) {
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.SUPABASE_SERVICE_ROLE_KEY
+      )
+
+      await supabase
+        .from('pedidos')
+        .update({
+          status: 'confirmado',
+          pagamento_status: status,
+          atualizado_em: new Date().toISOString()
+        })
+        .eq('id', externalReference)
+
+      // Tenta enviar email
+      try {
+        const resend = new Resend(process.env.RESEND_API_KEY)
+
+        const { data: pedido } = await supabase
+          .from('pedidos')
+          .select('cliente_nome, cliente_email, total, itens')
+          .eq('id', externalReference)
+          .single()
+
+        if (pedido?.cliente_email) {
+          await resend.emails.send({
+            from: 'Tortas da Lika <onboarding@resend.dev>',
+            to: pedido.cliente_email,
+            subject: 'Pedido Confirmado - Tortas da Lika',
+            html: emailPedidoConfirmado({
+              nomeCliente: pedido.cliente_nome || pedido.cliente_email.split('@')[0],
+              pedidoId: externalReference,
+              total: pedido.total || 0,
+              itens: Array.isArray(pedido.itens) ? pedido.itens : []
+            })
+          })
+        }
+      } catch (emailError) {
+        console.error('Erro ao enviar email (GET):', emailError)
+      }
+
+      // Salva na tabela payments
+      if (paymentId) {
+        try {
+          await supabase.from('payments').insert({
+            order_id: externalReference,
+            metodo: 'mercadopago',
+            status: 'approved',
+            valor: null,
+            mercado_pago_id: String(paymentId),
+            mercado_pago_status: 'approved',
+            criado_em: new Date().toISOString(),
+            atualizado_em: new Date().toISOString()
+          })
+        } catch (_) {}
+      }
+    }
+
+    // Redireciona pra pagina de sucesso
+    const redirectUrl = new URL(`${baseUrl}/pedido/sucesso`)
+    if (status) redirectUrl.searchParams.set('status', status)
+    if (externalReference) redirectUrl.searchParams.set('external_reference', externalReference)
+    if (paymentId) redirectUrl.searchParams.set('payment_id', paymentId)
+
+    return Response.redirect(redirectUrl.toString(), 302)
+  } catch (error) {
+    console.error('Erro no GET:', error)
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || request.nextUrl.origin
+    return Response.redirect(`${baseUrl}/pedidos`, 302)
   }
 }
