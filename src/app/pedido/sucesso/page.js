@@ -31,18 +31,23 @@ export default async function SucessoPage({ searchParams }) {
       if (!error) {
         atualizou = true
 
-        if (paymentId) {
-          await supabase.from('payments').insert({
-            order_id: externalReference,
-            metodo: 'mercadopago',
-            status: 'approved',
-            valor: null,
-            mercado_pago_id: String(paymentId),
-            mercado_pago_status: 'approved',
-            criado_em: new Date().toISOString(),
-            atualizado_em: new Date().toISOString()
-          }).catch(() => {})
-        }
+            if (paymentId) {
+      try {
+        await supabase.from('payments').insert({
+          order_id: externalReference,
+          metodo: 'mercadopago',
+          status: 'approved',
+          valor: null,
+          mercado_pago_id: String(paymentId),
+          mercado_pago_status: 'approved',
+          criado_em: new Date().toISOString(),
+          atualizado_em: new Date().toISOString()
+        })
+      } catch (_) {
+        // fallback silencioso - se der erro no insert do pagamento,
+        // o pedido ja foi atualizado como confirmado
+      }
+    }
       }
     } catch (e) {
       console.error('Erro server-side ao confirmar pagamento:', e)
