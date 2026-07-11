@@ -19,18 +19,11 @@ export function AuthProvider({ children }) {
 
       if (data) {
         setPerfil(data)
-        localStorage.setItem('user', JSON.stringify({
-          id: data.id,
-          nome: data.nome,
-          email: usuario?.email
-        }))
+        localStorage.setItem('user', JSON.stringify({ id: data.id, nome: data.nome, email: data.email }))
       } else {
         const session = (await supabase.auth.getSession()).data.session
         if (session?.user) {
-          localStorage.setItem('user', JSON.stringify({
-            id: session.user.id,
-            email: session.user.email
-          }))
+          localStorage.setItem('user', JSON.stringify({ id: session.user.id, email: session.user.email }))
         }
       }
     } catch (err) {
@@ -68,7 +61,6 @@ export function AuthProvider({ children }) {
 
   async function atualizarPerfil(dados) {
     if (!usuario) return { error: 'Usuario nao logado' }
-
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -85,19 +77,15 @@ export function AuthProvider({ children }) {
   }
 
   async function cadastrar(email, senha) {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password: senha,
-      options: { emailRedirectTo: `${window.location.origin}/login` },
-    })
+    const { data, error } = await supabase.auth.signUp(
+      { email, password },
+      { emailRedirectTo: `${window.location.origin}/login` }
+    )
     return { data, error }
   }
 
   async function login(email, senha) {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password: senha,
-    })
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password: senha })
     return { data, error }
   }
 
@@ -109,9 +97,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider
-      value={{ usuario, perfil, carregando, cadastrar, login, logout, atualizarPerfil }}
-    >
+    <AuthContext.Provider value={{ usuario, perfil, carregando, cadastrar, login, logout, atualizarPerfil }}>
       {children}
     </AuthContext.Provider>
   )
