@@ -82,6 +82,12 @@ export default function AdminPedidosPage() {
   const [filtro, setFiltro] = useState('todos')
   const [atualizando, setAtualizando] = useState(null)
 
+  // Estados do modal de confirmacao
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false)
+  const [confirmPedidoId, setConfirmPedidoId] = useState(null)
+  const [confirmNovoStatus, setConfirmNovoStatus] = useState(null)
+  const [confirmEnviando, setConfirmEnviando] = useState(false)
+
   useEffect(() => {
     async function verificarAdmin() {
       const { data: { session } } = await supabase.auth.getSession()
@@ -118,21 +124,55 @@ export default function AdminPedidosPage() {
     carregarPedidos()
   }, [adminVerificado])
 
-  async function handleAlterarStatus(pedidoId, novoStatus) {
-    setAtualizando(pedidoId)
-    const { error } = await supabase
-      .from('pedidos')
-      .update({ status: novoStatus })
-      .eq('id', pedidoId)
-    if (error) {
-      console.error('Erro ao atualizar status:', error)
-      alert('Erro ao atualizar status do pedido')
-    } else {
-      setPedidos(pedidos.map(p =>
-        p.id === pedidoId ? { ...p, status: novoStatus } : p
-      ))
+  // Abre o modal de confirmacao em vez de alterar direto
+  function handleSolicitarAlteracao(pedidoId, novoStatus) {
+    setConfirmPedidoId(pedidoId)
+    setConfirmNovoStatus(novoStatus)
+    setConfirmModalOpen(true)
+  }
+
+  // Executa a alteracao chamando a API
+  async function handleConfirmarAlteracao() {
+    if (!confirmPedidoId || !confirmNovoStatus) return
+
+    setConfirmEnviando(true)
+    setAtualizando(confirmPedidoId)
+
+    try {
+      const res = await fetch('/api/pedido/atualizar-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pedidoId: confirmPedidoId,
+          novoStatus: confirmNovoStatus
+        })
+      })
+
+      const data = await res.json()
+
+      if (data.success) {
+        setPedidos(pedidos.map(p =>
+          p.id === confirmPedidoId ? { ...p, status: confirmNovoStatus } : p
+        ))
+      } else {
+        alert('Erro ao atualizar status: ' + (data.error || 'Erro desconhecido'))
+      }
+    } catch (err) {
+      console.error('Erro ao alterar status:', err)
+      alert('Erro ao conectar com o servidor. Tente novamente.')
     }
+
+    setConfirmEnviando(false)
     setAtualizando(null)
+    setConfirmModalOpen(false)
+    setConfirmPedidoId(null)
+    setConfirmNovoStatus(null)
+  }
+
+  function handleCancelarAlteracao() {
+    setConfirmModalOpen(false)
+    setConfirmPedidoId(null)
+    setConfirmNovoStatus(null)
   }
 
   if (!adminVerificado) {
@@ -265,7 +305,7 @@ export default function AdminPedidosPage() {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12, marginBottom: 16 }}>
                   <div>
                     <p style={{ fontFamily: SANS, fontSize: 12, color: COLORS.textLight, margin: 0, marginBottom: 4 }}>Cliente</p>
-                    <p style={{ fontFamily: SANS, fontSize: 14, color: COLORS.text, margin: 0 }}>{pedido.cliente_nome || '—'}</p>
+                    <p style={{ fontFamily: SANS, fontSize: 14, color: COLORS.text, margin: 0 }}>{pedido.cliente_nome || pedido.nome_cliente || '—'}</p>
                   </div>
                   <div>
                     <p style={{ fontFamily: SANS, fontSize: 12, color: COLORS.textLight, margin: 0, marginBottom: 4 }}>Telefone</p>
@@ -297,7 +337,7 @@ export default function AdminPedidosPage() {
                   <span style={{ fontFamily: SANS, fontSize: 13, color: COLORS.textLight }}>Alterar status:</span>
                   <select
                     value={pedido.status}
-                    onChange={(e) => handleAlterarStatus(pedido.id, e.target.value)}
+                    onChange={(e) => handleSolicitarAlteracao(pedido.id, e.target.value)}
                     disabled={atualizando === pedido.id}
                     style={{
                       padding: '6px 12px',
@@ -324,6 +364,111 @@ export default function AdminPedidosPage() {
           </div>
         )}
       </div>
+
+      {/* Modal de confirmacao de alteracao de status */}
+      {confirmModalOpen && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 99999,
+            background: 'rgba(45, 27, 14, 0.5)',
+            backdropFilter: 'blur(4px)',
+            WebkitBackdropFilter: 'blur(4px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '24px',
+          }}
+          onClick={handleCancelarAlteracao}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: 'white',
+              borderRadius: 16,
+              padding: '32px',
+              maxWidth: '420px',
+              width: '100%',
+              boxShadow: '0 8px 32px rgba(45,27,14,0.15)',
+              animation: 'scaleIn 0.3s ease',
+            }}
+          >
+            <h3 style={{
+              fontFamily: SERIF,
+              fontSize: 20,
+              color: COLORS.text,
+              margin: '0 0 8px',
+              fontWeight: 700,
+            }}>
+              Alterar status do pedido?
+            </h3>
+            <p style={{
+              fontFamily: SANS,
+              fontSize: 14,
+              color: COLORS.textLight,
+              margin: '0 0 24px',
+              lineHeight: 1.5,
+            }}>
+              Tem certeza que deseja alterar o status do pedido <strong>#{String(confirmPedidoId || '').slice(0, 8)}</strong> para <strong style={{ color: getStatusColor(confirmNovoStatus) }}>{STATUS_LABELS[confirmNovoStatus] || confirmNovoStatus}</strong>?
+            </p>
+
+            {confirmNovoStatus === 'saiu_entrega' && (
+              <p style={{
+                fontFamily: SANS,
+                fontSize: 13,
+                color: COLORS.primary,
+                margin: '0 0 20px',
+                padding: '10px 14px',
+                background: '#FFF8F0',
+                borderRadius: 8,
+                border: '1px solid #E8D9C5',
+                lineHeight: 1.4,
+              }}>
+                Um email de notificacao sera enviado automaticamente para o cliente avisando que o pedido saiu para entrega.
+              </p>
+            )}
+
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+              <button
+                onClick={handleCancelarAlteracao}
+                disabled={confirmEnviando}
+                style={{
+                  padding: '10px 24px',
+                  borderRadius: 999,
+                  border: '1.5px solid ' + COLORS.border,
+                  background: 'transparent',
+                  color: COLORS.textLight,
+                  fontSize: 14,
+                  fontWeight: 600,
+                  fontFamily: SANS,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  opacity: confirmEnviando ? 0.5 : 1,
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleConfirmarAlteracao}
+                disabled={confirmEnviando}
+                style={{
+                  padding: '10px 24px',
+                  borderRadius: 999,
+                  border: 'none',
+                  background: getStatusColor(confirmNovoStatus),
+                  color: 'white',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  fontFamily: SANS,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                  opacity: confirmEnviando ? 0.6 : 1,
+                }}
+              >
+                {confirmEnviando ? 'Alterando...' : 'Sim, alterar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
