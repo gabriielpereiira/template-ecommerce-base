@@ -1,5 +1,4 @@
 'use client'
-
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '../context/AuthContext'
@@ -8,7 +7,6 @@ import Header from '../../components/Header'
 export default function CadastroPage() {
   const router = useRouter()
   const { cadastrar } = useAuth()
-
   const [form, setForm] = useState({
     nome: '',
     telefone: '',
@@ -23,140 +21,11 @@ export default function CadastroPage() {
     cidade: '',
     estado: ''
   })
-
   const [cepLoading, setCepLoading] = useState(false)
   const [cepError, setCepError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
-
-  const styles = {
-    page: {
-      minHeight: '100vh',
-      backgroundColor: '#f5ede3',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '24px 16px',
-      fontFamily: 'Arial, Helvetica, sans-serif'
-    },
-    card: {
-      width: '100%',
-      maxWidth: '480px',
-      backgroundColor: '#fffaf3',
-      borderRadius: '12px',
-      boxShadow: '0 8px 24px rgba(74, 55, 40, 0.15)',
-      padding: '32px 28px',
-      border: '1px solid #e8d9c5'
-    },
-    title: {
-      color: '#4a3728',
-      fontSize: '26px',
-      fontWeight: '700',
-      textAlign: 'center',
-      margin: '0 0 6px 0'
-    },
-    subtitle: {
-      color: '#7a6a55',
-      fontSize: '14px',
-      textAlign: 'center',
-      margin: '0 0 24px 0'
-    },
-    form: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '14px'
-    },
-    row: {
-      display: 'flex',
-      gap: '12px'
-    },
-    field: {
-      display: 'flex',
-      flexDirection: 'column',
-      flex: 1
-    },
-    label: {
-      color: '#4a3728',
-      fontSize: '13px',
-      fontWeight: '600',
-      marginBottom: '5px'
-    },
-    input: {
-      padding: '10px 12px',
-      fontSize: '14px',
-      border: '1px solid #d8c4ad',
-      borderRadius: '8px',
-      backgroundColor: '#ffffff',
-      color: '#3d2f24',
-      outline: 'none',
-      transition: 'border-color 0.2s'
-    },
-    inputReadOnly: {
-      padding: '10px 12px',
-      fontSize: '14px',
-      border: '1px solid #e0d2bf',
-      borderRadius: '8px',
-      backgroundColor: '#f3ead9',
-      color: '#6b5a47'
-    },
-    button: {
-      marginTop: '8px',
-      padding: '12px 16px',
-      fontSize: '15px',
-      fontWeight: '700',
-      color: '#ffffff',
-      backgroundColor: '#4a3728',
-      border: 'none',
-      borderRadius: '8px',
-      cursor: submitting ? 'not-allowed' : 'pointer',
-      opacity: submitting ? 0.7 : 1
-    },
-    errorBox: {
-      backgroundColor: '#f8e1dd',
-      color: '#8a2b1f',
-      border: '1px solid #e6b8b0',
-      borderRadius: '8px',
-      padding: '10px 12px',
-      fontSize: '13px'
-    },
-    helper: {
-      fontSize: '12px',
-      color: '#9a8a73',
-      margin: '4px 0 0 0'
-    },
-    linkRow: {
-      textAlign: 'center',
-      marginTop: '18px',
-      fontSize: '14px',
-      color: '#5a4a38'
-    },
-    link: {
-      color: '#4a3728',
-      fontWeight: '700',
-      textDecoration: 'underline',
-      cursor: 'pointer',
-      background: 'none',
-      border: 'none',
-      padding: 0,
-      fontSize: '14px'
-    },
-    successBox: {
-      textAlign: 'center'
-    },
-    successTitle: {
-      color: '#4a3728',
-      fontSize: '22px',
-      fontWeight: '700',
-      marginBottom: '12px'
-    },
-    successText: {
-      color: '#5a4a38',
-      fontSize: '15px',
-      lineHeight: '1.6',
-      marginBottom: '20px'
-    }
-  }
 
   const maskTelefone = (value) => {
     const digits = value.replace(/\D/g, '').slice(0, 11)
@@ -216,7 +85,7 @@ export default function CadastroPage() {
       } else {
         setCepError('CEP nao encontrado. Verifique e tente novamente.')
       }
-    } catch (err) {
+    } catch {
       setCepError('Erro ao buscar o CEP. Tente novamente.')
     } finally {
       setCepLoading(false)
@@ -227,82 +96,104 @@ export default function CadastroPage() {
     e.preventDefault()
     setError('')
 
-    if (form.senha.length < 6) {
-      setError('A senha deve ter no minimo 6 caracteres.')
-      return
-    }
-
     if (form.senha !== form.confirmarSenha) {
       setError('As senhas nao conferem.')
       return
     }
 
-    if (form.cep.length !== 8) {
-      setError('Informe um CEP valido com 8 digitos.')
-      return
-    }
-
     setSubmitting(true)
-
     try {
-      const { data: authData, error: authError } = await cadastrar(form.email, form.senha)
+      const telefoneDigits = form.telefone.replace(/\D/g, '')
+      const { error: cadastroError } = await cadastrar({
+        email: form.email,
+        senha: form.senha,
+        nome: form.nome,
+        telefone: telefoneDigits,
+        cep: form.cep,
+        logradouro: form.logradouro,
+        numero: form.numero,
+        complemento: form.complemento,
+        bairro: form.bairro,
+        cidade: form.cidade,
+        estado: form.estado,
+      })
 
-      if (authError || !authData?.user) {
-        setError(authError?.message || 'Nao foi possivel criar a conta.')
+      if (cadastroError) {
+        setError(cadastroError.message || 'Erro ao criar conta.')
         setSubmitting(false)
         return
       }
 
-      const res = await fetch('/api/criar-perfil', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: authData.user.id,
-          nome: form.nome,
-          telefone: form.telefone,
-          cep: form.cep,
-          logradouro: form.logradouro,
-          numero: form.numero,
-          complemento: form.complemento,
-          bairro: form.bairro,
-          cidade: form.cidade,
-          estado: form.estado
-        })
-      })
-
-      const profileResult = await res.json()
-      if (!profileResult.success) {
-        console.error('Erro ao salvar perfil:', profileResult.error)
-      }
-
       setSuccess(true)
-    } catch (err) {
-      setError(err?.message || 'Nao foi possivel concluir o cadastro. Tente novamente.')
-    } finally {
-      setSubmitting(false)
+    } catch {
+      setError('Erro inesperado. Tente novamente.')
     }
+    setSubmitting(false)
   }
 
   if (success) {
     return (
       <>
         <Header />
-        <div style={styles.page}>
-          <div style={styles.card}>
-            <div style={styles.successBox}>
-              <h1 style={styles.successBox}>Cadastro realizado</h1>
-              <p style={styles.successText}>
-                Seu cadastro foi criado com sucesso. Um email de confirmacao foi enviado para o seu endereco. Verifique sua caixa de entrada para confirmar sua conta.
-              </p>
-              <button onClick={() => router.push('/login')} style={styles.button}>
-                Ir para o login
+        <div style={{
+          minHeight: 'calc(100vh - 64px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '40px 16px',
+          background: 'var(--color-brand-bg)',
+        }}>
+          <div className="card anim-fade-in-up" style={{
+            width: '100%',
+            maxWidth: 480,
+            padding: '40px 32px',
+            textAlign: 'center',
+          }}>
+            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="var(--color-brand-gold)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 16 }}>
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
+            </svg>
+            <h1 style={{
+              color: 'var(--color-brand-dark)',
+              fontSize: 24,
+              fontWeight: 700,
+              marginBottom: 12,
+              fontFamily: 'Georgia, "Times New Roman", serif',
+            }}>
+              Cadastro realizado
+            </h1>
+            <p style={{
+              color: 'var(--color-brand-text-secondary)',
+              fontSize: 15,
+              lineHeight: '1.6',
+              marginBottom: 24,
+            }}>
+              Seu cadastro foi criado com sucesso. Um email de confirmacao foi enviado para o seu endereco.
+              Verifique sua caixa de entrada para confirmar sua conta.
+            </p>
+            <button onClick={() => router.push('/login')} className="btn btn-primary btn-lg">
+              Ir para o login
+            </button>
+            <p style={{ marginTop: 16, fontSize: 14, color: 'var(--color-brand-text-secondary)' }}>
+              <button
+                onClick={() => router.push('/login')}
+                style={{
+                  color: 'var(--color-brand-gold)',
+                  fontWeight: 600,
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: 14,
+                  fontFamily: 'inherit',
+                  padding: 0,
+                  textDecoration: 'none',
+                }}
+                onMouseEnter={e => e.currentTarget.style.color = 'var(--color-brand-gold-dark)'}
+                onMouseLeave={e => e.currentTarget.style.color = 'var(--color-brand-gold)'}
+              >
+                Ja tenho conta, voltar ao login
               </button>
-              <p style={styles.linkRow}>
-                <button onClick={() => router.push('/login')} style={styles.link}>
-                  Ja tenho conta, voltar ao login
-                </button>
-              </p>
-            </div>
+            </p>
           </div>
         </div>
       </>
@@ -312,37 +203,67 @@ export default function CadastroPage() {
   return (
     <>
       <Header />
-      <div style={styles.page}>
-        <div style={styles.card}>
-          <h1 style={styles.title}>Tortas da Lika</h1>
-          <p style={styles.subtitle}>Criar sua conta</p>
+      <div style={{
+        minHeight: 'calc(100vh - 64px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '24px 16px',
+        background: 'var(--color-brand-bg)',
+      }}>
+        <div className="card anim-fade-in-up" style={{
+          width: '100%',
+          maxWidth: 480,
+          padding: '36px 28px',
+        }}>
+          <h1 style={{
+            color: 'var(--color-brand-dark)',
+            fontSize: 26,
+            fontWeight: 700,
+            textAlign: 'center',
+            margin: '0 0 6px 0',
+            fontFamily: 'Georgia, "Times New Roman", serif',
+          }}>
+            Tortas da Lika
+          </h1>
+          <p style={{
+            color: 'var(--color-brand-text-secondary)',
+            fontSize: 14,
+            textAlign: 'center',
+            margin: '0 0 24px 0',
+          }}>
+            Criar sua conta
+          </p>
 
-          <form style={styles.form} onSubmit={handleSubmit}>
-            <div style={styles.field}>
-              <label style={styles.label}>Nome completo</label>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {/* Nome */}
+            <div className="input-group">
+              <label className="input-label">Nome completo</label>
               <input
                 name="nome"
                 value={form.nome}
                 onChange={handleChange}
                 placeholder="Seu nome"
                 required
-                style={styles.input}
+                className="input"
               />
             </div>
 
-            <div style={styles.field}>
-              <label style={styles.label}>Telefone</label>
+            {/* Telefone */}
+            <div className="input-group">
+              <label className="input-label">Telefone</label>
               <input
                 name="telefone"
                 value={form.telefone}
                 onChange={handleChange}
                 placeholder="(53) 99999-9999"
-                style={styles.input}
+                className="input"
               />
             </div>
 
-            <div style={styles.field}>
-              <label style={styles.label}>Email</label>
+            {/* Email */}
+            <div className="input-group">
+              <label className="input-label">Email</label>
               <input
                 type="email"
                 name="email"
@@ -350,13 +271,14 @@ export default function CadastroPage() {
                 onChange={handleChange}
                 placeholder="seu@email.com"
                 required
-                style={styles.input}
+                className="input"
               />
             </div>
 
-            <div style={styles.row}>
-              <div style={styles.field}>
-                <label style={styles.label}>Senha</label>
+            {/* Senhas */}
+            <div style={{ display: 'flex', gap: 12 }}>
+              <div className="input-group" style={{ flex: 1 }}>
+                <label className="input-label">Senha</label>
                 <input
                   type="password"
                   name="senha"
@@ -364,11 +286,11 @@ export default function CadastroPage() {
                   onChange={handleChange}
                   placeholder="Minimo 6 caracteres"
                   required
-                  style={styles.input}
+                  className="input"
                 />
               </div>
-              <div style={styles.field}>
-                <label style={styles.label}>Confirmar senha</label>
+              <div className="input-group" style={{ flex: 1 }}>
+                <label className="input-label">Confirmar senha</label>
                 <input
                   type="password"
                   name="confirmarSenha"
@@ -376,106 +298,181 @@ export default function CadastroPage() {
                   onChange={handleChange}
                   placeholder="Repita a senha"
                   required
-                  style={styles.input}
+                  className="input"
                 />
               </div>
             </div>
 
-            <div style={styles.row}>
-              <div style={{ ...styles.field, flex: '0 0 140px' }}>
-                <label style={styles.label}>CEP</label>
+            {/* CEP + Numero */}
+            <div style={{ display: 'flex', gap: 12 }}>
+              <div className="input-group" style={{ flex: '0 0 140px' }}>
+                <label className="input-label">CEP</label>
                 <input
                   name="cep"
                   value={form.cep}
                   onChange={handleChange}
                   placeholder="96200000"
                   maxLength={8}
-                  style={styles.input}
+                  className="input"
                 />
-                {cepLoading && <p style={styles.helper}>Buscando...</p>}
-                {cepError && <p style={{ ...styles.helper, color: '#c00' }}>{cepError}</p>}
+                {cepLoading && <p style={{ fontSize: 12, color: 'var(--color-brand-text-secondary)', margin: '4px 0 0' }}>Buscando...</p>}
+                {cepError && <p style={{ fontSize: 12, color: '#EF4444', margin: '4px 0 0' }}>{cepError}</p>}
               </div>
-              <div style={styles.field}>
-                <label style={styles.label}>Numero</label>
+              <div className="input-group" style={{ flex: 1 }}>
+                <label className="input-label">Numero</label>
                 <input
                   name="numero"
                   value={form.numero}
                   onChange={handleChange}
                   placeholder="S/N"
-                  style={styles.input}
+                  className="input"
                 />
               </div>
             </div>
 
-            <div style={styles.field}>
-              <label style={styles.label}>Logradouro</label>
+            {/* Logradouro */}
+            <div className="input-group">
+              <label className="input-label">Logradouro</label>
               <input
                 name="logradouro"
                 value={form.logradouro}
                 readOnly
                 placeholder="Preencha o CEP primeiro"
-                style={form.logradouro ? styles.inputReadOnly : styles.input}
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  fontSize: 14,
+                  border: '1px solid var(--color-brand-border)',
+                  borderRadius: 10,
+                  background: form.logradouro ? 'var(--color-brand-bg-soft)' : 'white',
+                  color: form.logradouro ? 'var(--color-brand-text)' : 'var(--color-brand-text-secondary)',
+                  outline: 'none',
+                  fontFamily: 'inherit',
+                  boxSizing: 'border-box',
+                }}
               />
             </div>
 
-            <div style={styles.field}>
-              <label style={styles.label}>Complemento</label>
+            {/* Complemento */}
+            <div className="input-group">
+              <label className="input-label">Complemento</label>
               <input
                 name="complemento"
                 value={form.complemento}
                 onChange={handleChange}
                 placeholder="Apto, Bloco, etc."
-                style={styles.input}
+                className="input"
               />
             </div>
 
-            <div style={styles.row}>
-              <div style={styles.field}>
-                <label style={styles.label}>Bairro</label>
+            {/* Bairro / Cidade / Estado */}
+            <div style={{ display: 'flex', gap: 12 }}>
+              <div className="input-group" style={{ flex: 1 }}>
+                <label className="input-label">Bairro</label>
                 <input
                   name="bairro"
                   value={form.bairro}
                   readOnly
-                  style={styles.inputReadOnly}
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    fontSize: 14,
+                    border: '1px solid var(--color-brand-border)',
+                    borderRadius: 10,
+                    background: 'var(--color-brand-bg-soft)',
+                    color: 'var(--color-brand-text)',
+                    outline: 'none',
+                    fontFamily: 'inherit',
+                    boxSizing: 'border-box',
+                  }}
                 />
               </div>
-              <div style={styles.field}>
-                <label style={styles.label}>Cidade</label>
+              <div className="input-group" style={{ flex: 1 }}>
+                <label className="input-label">Cidade</label>
                 <input
                   name="cidade"
                   value={form.cidade}
                   readOnly
-                  style={styles.inputReadOnly}
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    fontSize: 14,
+                    border: '1px solid var(--color-brand-border)',
+                    borderRadius: 10,
+                    background: 'var(--color-brand-bg-soft)',
+                    color: 'var(--color-brand-text)',
+                    outline: 'none',
+                    fontFamily: 'inherit',
+                    boxSizing: 'border-box',
+                  }}
                 />
               </div>
-              <div style={styles.field}>
-                <label style={styles.label}>Estado</label>
+              <div className="input-group" style={{ flex: '0 0 80px' }}>
+                <label className="input-label">Estado</label>
                 <input
                   name="estado"
                   value={form.estado}
                   readOnly
-                  style={styles.inputReadOnly}
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    fontSize: 14,
+                    border: '1px solid var(--color-brand-border)',
+                    borderRadius: 10,
+                    background: 'var(--color-brand-bg-soft)',
+                    color: 'var(--color-brand-text)',
+                    outline: 'none',
+                    fontFamily: 'inherit',
+                    boxSizing: 'border-box',
+                  }}
                 />
               </div>
             </div>
 
             {error && (
-              <div style={styles.errorBox}>
+              <div style={{
+                fontSize: 13,
+                padding: '10px 14px',
+                borderRadius: 10,
+                background: 'var(--color-status-danger-bg)',
+                color: '#B91C1C',
+                border: '1px solid #FECACA',
+              }}>
                 {error}
               </div>
             )}
 
-            <button type="submit" disabled={submitting} style={styles.button}>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="btn btn-primary btn-lg btn-block"
+              style={{ marginTop: 4 }}
+            >
               {submitting ? 'Cadastrando...' : 'Criar conta'}
             </button>
-          </form>
 
-          <p style={styles.linkRow}>
-            Ja tem uma conta?{' '}
-            <button onClick={() => router.push('/login')} style={styles.link}>
-              Entrar
-            </button>
-          </p>
+            <p style={{
+              textAlign: 'center',
+              fontSize: 14,
+              color: 'var(--color-brand-text-secondary)',
+              marginTop: 8,
+            }}>
+              Ja tem conta?{' '}
+              <a
+                href="/login"
+                style={{
+                  color: 'var(--color-brand-gold)',
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                  transition: 'color 0.2s',
+                }}
+                onMouseEnter={e => e.currentTarget.style.color = 'var(--color-brand-gold-dark)'}
+                onMouseLeave={e => e.currentTarget.style.color = 'var(--color-brand-gold)'}
+              >
+                Fazer login
+              </a>
+            </p>
+          </form>
         </div>
       </div>
     </>

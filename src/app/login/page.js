@@ -1,5 +1,4 @@
 'use client'
-
 import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '@/lib/supabaseClient'
@@ -7,254 +6,292 @@ import { useRouter } from 'next/navigation'
 import Header from '../../components/Header'
 
 export default function LoginPage() {
-const { login, usuario } = useAuth()
-const router = useRouter()
-const [email, setEmail] = useState('')
-const [senha, setSenha] = useState('')
-const [erro, setErro] = useState('')
-const [enviando, setEnviando] = useState(false)
+  const { login, usuario } = useAuth()
+  const router = useRouter()
+  const [email, setEmail] = useState('')
+  const [senha, setSenha] = useState('')
+  const [erro, setErro] = useState('')
+  const [enviando, setEnviando] = useState(false)
+  const [modalResetAberto, setModalResetAberto] = useState(false)
+  const [emailReset, setEmailReset] = useState('')
+  const [enviandoReset, setEnviandoReset] = useState(false)
+  const [mensagemReset, setMensagemReset] = useState(null)
 
-// Estado do modal de esqueceu a senha
-const [modalResetAberto, setModalResetAberto] = useState(false)
-const [emailReset, setEmailReset] = useState('')
-const [enviandoReset, setEnviandoReset] = useState(false)
-const [mensagemReset, setMensagemReset] = useState(null)
+  if (usuario) {
+    return (
+      <>
+        <Header />
+        <div style={{ maxWidth: 400, margin: '60px auto', textAlign: 'center', padding: '0 16px' }}>
+          <h1 style={{ fontSize: 24, color: 'var(--color-brand-dark-light)', marginBottom: 16, fontFamily: 'Georgia, "Times New Roman", serif' }}>
+            Voce ja esta logado
+          </h1>
+          <p style={{ color: 'var(--color-brand-text-secondary)', marginBottom: 24 }}>{usuario.email}</p>
+          <a href="/cardapio" className="btn btn-primary">
+            Ir para o cardapio
+          </a>
+        </div>
+      </>
+    )
+  }
 
-if (usuario) {
-return (
-<>
-<Header />
-<div style={{ maxWidth: 400, margin: '60px auto', textAlign: 'center' }}>
-<h1 style={{ fontSize: 24, color: '#4a3728', marginBottom: 16 }}>Voce ja esta logado</h1>
-<p style={{ color: '#555', marginBottom: 24 }}>{usuario.email}</p>
-<a
-href="/cardapio"
-style={{
-background: '#4a3728',
-color: '#fff',
-padding: '10px 24px',
-borderRadius: 6,
-textDecoration: 'none',
-fontSize: 14,
-}}
->
-Ir para o cardapio
-</a>
-</div>
-</>
-)
-}
+  async function handleSubmit(e) {
+    e.preventDefault()
+    setErro('')
+    setEnviando(true)
+    const { error } = await login(email, senha)
+    setEnviando(false)
+    if (error) {
+      if (error.message.includes('Email not confirmed')) {
+        setErro('Seu email ainda nao foi confirmado. Verifique sua caixa de entrada ou spam.')
+      } else {
+        setErro(error.message)
+      }
+      return
+    }
+    router.push('/cardapio')
+  }
 
-async function handleSubmit(e) {
-e.preventDefault()
-setErro('')
-setEnviando(true)
+  async function handleResetSenha() {
+    if (!emailReset) {
+      setMensagemReset({ tipo: 'erro', texto: 'Informe seu email.' })
+      return
+    }
+    setEnviandoReset(true)
+    setMensagemReset(null)
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(emailReset, {
+        redirectTo: `${window.location.origin}/atualizar-senha`,
+      })
+      if (error) {
+        setMensagemReset({ tipo: 'erro', texto: error.message || 'Erro ao enviar email de redefinicao.' })
+      } else {
+        setMensagemReset({ tipo: 'sucesso', texto: 'Email de redefinicao enviado! Verifique sua caixa de entrada.' })
+      }
+    } catch {
+      setMensagemReset({ tipo: 'erro', texto: 'Erro ao enviar email. Tente novamente.' })
+    } finally {
+      setEnviandoReset(false)
+    }
+  }
 
-const { error } = await login(email, senha)
-setEnviando(false)
+  return (
+    <>
+      <Header />
+      <div style={{
+        minHeight: 'calc(100vh - 64px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '40px 16px',
+        background: 'var(--color-brand-bg)',
+      }}>
+        <div className="card anim-fade-in-up" style={{
+          width: '100%',
+          maxWidth: 420,
+          padding: '36px 32px',
+        }}>
+          <h1 style={{
+            fontSize: 26,
+            color: 'var(--color-brand-dark)',
+            marginBottom: 8,
+            fontFamily: 'Georgia, "Times New Roman", serif',
+            fontWeight: 700,
+            textAlign: 'center',
+          }}>
+            Entrar
+          </h1>
+          <p style={{
+            fontSize: 14,
+            color: 'var(--color-brand-text-secondary)',
+            marginBottom: 24,
+            textAlign: 'center',
+          }}>
+            Acesse sua conta Tortas da Lika
+          </p>
 
-if (error) {
-if (error.message.includes('Email not confirmed')) {
-setErro('Seu email ainda nao foi confirmado. Verifique sua caixa de entrada ou spam.')
-} else {
-setErro(error.message)
-}
-return
-}
+          {erro && (
+            <div style={{
+              fontSize: 13,
+              marginBottom: 16,
+              padding: '10px 14px',
+              borderRadius: 10,
+              background: 'var(--color-status-danger-bg)',
+              color: '#B91C1C',
+              border: '1px solid #FECACA',
+            }}>
+              {erro}
+            </div>
+          )}
 
-router.push('/cardapio')
-}
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div className="input-group">
+              <label className="input-label">Email</label>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="seu@email.com"
+                className="input"
+              />
+            </div>
 
-async function handleResetSenha() {
-if (!emailReset) {
-setMensagemReset({ tipo: 'erro', texto: 'Informe seu email.' })
-return
-}
+            <div className="input-group">
+              <label className="input-label">Senha</label>
+              <input
+                type="password"
+                required
+                value={senha}
+                onChange={e => setSenha(e.target.value)}
+                placeholder="Sua senha"
+                className="input"
+              />
+            </div>
 
-setEnviandoReset(true)
-setMensagemReset(null)
+            <div style={{ textAlign: 'right', marginTop: -8 }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setEmailReset(email)
+                  setModalResetAberto(true)
+                  setMensagemReset(null)
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--color-brand-gold)',
+                  fontSize: 13,
+                  cursor: 'pointer',
+                  textDecoration: 'none',
+                  padding: 0,
+                  fontWeight: 500,
+                  transition: 'color 0.2s',
+                }}
+                onMouseEnter={e => e.currentTarget.style.color = 'var(--color-brand-gold-dark)'}
+                onMouseLeave={e => e.currentTarget.style.color = 'var(--color-brand-gold)'}
+              >
+                Esqueceu a senha?
+              </button>
+            </div>
 
-try {
-const { error } = await supabase.auth.resetPasswordForEmail(emailReset, {
-redirectTo: `${window.location.origin}/atualizar-senha`,
-})
+            <button
+              type="submit"
+              disabled={enviando}
+              className="btn btn-primary btn-lg btn-block"
+              style={{ marginTop: 4 }}
+            >
+              {enviando ? 'Entrando...' : 'Entrar'}
+            </button>
 
-if (error) {
-setMensagemReset({ tipo: 'erro', texto: error.message || 'Erro ao enviar email de redefinicao.' })
-} else {
-setMensagemReset({ tipo: 'sucesso', texto: 'Email de redefinicao enviado! Verifique sua caixa de entrada.' })
-}
-} catch (err) {
-setMensagemReset({ tipo: 'erro', texto: 'Erro ao enviar email. Tente novamente.' })
-} finally {
-setEnviandoReset(false)
-}
-}
+            <p style={{
+              textAlign: 'center',
+              fontSize: 14,
+              color: 'var(--color-brand-text-secondary)',
+              marginTop: 8,
+            }}>
+              Ainda nao tem conta?{' '}
+              <a
+                href="/cadastro"
+                style={{
+                  color: 'var(--color-brand-gold)',
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                  transition: 'color 0.2s',
+                }}
+                onMouseEnter={e => e.currentTarget.style.color = 'var(--color-brand-gold-dark)'}
+                onMouseLeave={e => e.currentTarget.style.color = 'var(--color-brand-gold)'}
+              >
+                Cadastre-se
+              </a>
+            </p>
+          </form>
+        </div>
+      </div>
 
-return (
-<>
-<Header />
-<div style={{ maxWidth: 400, margin: '40px auto' }}>
-<h1 style={{ fontSize: 24, color: '#4a3728', marginBottom: 24 }}>Entrar</h1>
+      {/* Modal de esqueceu a senha */}
+      {modalResetAberto && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 99999,
+            background: 'rgba(45, 27, 14, 0.5)',
+            backdropFilter: 'blur(4px)',
+            WebkitBackdropFilter: 'blur(4px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '24px',
+            animation: 'fadeIn 0.2s ease',
+          }}
+          onClick={() => setModalResetAberto(false)}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            className="card anim-scale-in"
+            style={{
+              padding: '32px', maxWidth: '400px', width: '100%',
+            }}
+          >
+            <h2 style={{
+              fontSize: 20,
+              color: 'var(--color-brand-dark)',
+              marginBottom: 8,
+              fontFamily: 'Georgia, "Times New Roman", serif',
+              fontWeight: 700,
+            }}>
+              Redefinir senha
+            </h2>
+            <p style={{
+              fontSize: 14,
+              color: 'var(--color-brand-text-secondary)',
+              marginBottom: 20,
+            }}>
+              Digite seu email para receber o link de redefinicao.
+            </p>
 
-{erro && (
-<p style={{ color: '#c00', fontSize: 13, marginBottom: 12, background: '#ffe8e8', padding: '8px 12px', borderRadius: 6 }}>
-{erro}
-</p>
-)}
+            <div className="input-group" style={{ marginBottom: 16 }}>
+              <label className="input-label">Email</label>
+              <input
+                type="email"
+                value={emailReset}
+                onChange={e => setEmailReset(e.target.value)}
+                placeholder="seu@email.com"
+                className="input"
+              />
+            </div>
 
-<form onSubmit={handleSubmit}>
-<div style={{ marginBottom: 16 }}>
-<label style={{ fontSize: 13, color: '#666', display: 'block', marginBottom: 4 }}>Email</label>
-<input
-type="email"
-required
-value={email}
-onChange={e => setEmail(e.target.value)}
-style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: 6, fontSize: 14, boxSizing: 'border-box' }}
-/>
-</div>
+            {mensagemReset && (
+              <div style={{
+                fontSize: 13,
+                marginBottom: 16,
+                padding: '10px 14px',
+                borderRadius: 10,
+                background: mensagemReset.tipo === 'sucesso' ? 'var(--color-status-success-bg)' : 'var(--color-status-danger-bg)',
+                color: mensagemReset.tipo === 'sucesso' ? '#047857' : '#B91C1C',
+                border: `1px solid ${mensagemReset.tipo === 'sucesso' ? '#A7F3D0' : '#FECACA'}`,
+              }}>
+                {mensagemReset.texto}
+              </div>
+            )}
 
-<div style={{ marginBottom: 8 }}>
-<label style={{ fontSize: 13, color: '#666', display: 'block', marginBottom: 4 }}>Senha</label>
-<input
-type="password"
-required
-value={senha}
-onChange={e => setSenha(e.target.value)}
-style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: 6, fontSize: 14, boxSizing: 'border-box' }}
-/>
-</div>
-
-<div style={{ textAlign: 'right', marginBottom: 24 }}>
-<button
-type="button"
-onClick={() => {
-setEmailReset(email)
-setModalResetAberto(true)
-setMensagemReset(null)
-}}
-style={{
-background: 'none',
-border: 'none',
-color: '#4a3728',
-fontSize: 13,
-cursor: 'pointer',
-textDecoration: 'underline',
-padding: 0,
-}}
->
-Esqueceu a senha?
-</button>
-</div>
-
-<button
-type="submit"
-disabled={enviando}
-style={{
-width: '100%',
-background: enviando ? '#999' : '#4a3728',
-color: '#fff',
-border: 'none',
-padding: '12px',
-borderRadius: 6,
-fontSize: 15,
-cursor: enviando ? 'not-allowed' : 'pointer',
-}}
->
-{enviando ? 'Entrando...' : 'Entrar'}
-</button>
-</form>
-
-<p style={{ textAlign: 'center', marginTop: 20, fontSize: 13, color: '#888' }}>
-Ainda nao tem conta?{' '}
-<a href="/cadastro" style={{ color: '#4a3728' }}>Criar conta</a>
-</p>
-
-{/* Modal de esqueceu a senha */}
-{modalResetAberto && (
-<div
-style={{
-position: 'fixed', inset: 0, zIndex: 99999,
-background: 'rgba(0,0,0,0.4)',
-display: 'flex', alignItems: 'center', justifyContent: 'center',
-padding: '24px',
-}}
-onClick={() => setModalResetAberto(false)}
->
-<div
-onClick={e => e.stopPropagation()}
-style={{
-background: '#fff', borderRadius: '12px',
-padding: '32px', maxWidth: '400px', width: '100%',
-boxShadow: '0 16px 48px rgba(0,0,0,0.15)',
-}}
->
-<h2 style={{ fontSize: '20px', color: '#4a3728', margin: '0 0 8px 0', fontWeight: 700 }}>
-Redefinir senha
-</h2>
-<p style={{ fontSize: '14px', color: '#666', margin: '0 0 20px 0', lineHeight: 1.5 }}>
-Digite seu email abaixo e enviaremos um link para redefinir sua senha.
-</p>
-
-<div style={{ marginBottom: 16 }}>
-<label style={{ fontSize: '13px', color: '#666', display: 'block', marginBottom: '4px' }}>Email</label>
-<input
-type="email"
-value={emailReset}
-onChange={e => setEmailReset(e.target.value)}
-placeholder="seu@email.com"
-style={{
-width: '100%', padding: '10px 12px',
-border: '1px solid #ddd', borderRadius: '6px',
-fontSize: '14px', boxSizing: 'border-box',
-}}
-/>
-</div>
-
-{mensagemReset && (
-<p style={{
-fontSize: '13px', marginBottom: '16px', padding: '8px 12px', borderRadius: '6px',
-background: mensagemReset.tipo === 'sucesso' ? '#e8f5e9' : '#ffe8e8',
-color: mensagemReset.tipo === 'sucesso' ? '#2e7d32' : '#c00',
-}}>
-{mensagemReset.texto}
-</p>
-)}
-
-<div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-<button
-onClick={() => {
-setModalResetAberto(false)
-setMensagemReset(null)
-}}
-style={{
-background: 'transparent', border: '1px solid #ddd',
-borderRadius: '6px', padding: '10px 20px',
-cursor: 'pointer', fontSize: '14px', color: '#666',
-}}
->
-Cancelar
-</button>
-<button
-onClick={handleResetSenha}
-disabled={enviandoReset}
-style={{
-background: enviandoReset ? '#999' : '#4a3728',
-color: '#fff', border: 'none',
-borderRadius: '6px', padding: '10px 20px',
-cursor: enviandoReset ? 'not-allowed' : 'pointer',
-fontSize: '14px', fontWeight: 600,
-opacity: enviandoReset ? 0.7 : 1,
-}}
->
-{enviandoReset ? 'Enviando...' : 'Enviar link'}
-</button>
-</div>
-</div>
-</div>
-)}
-</div>
-</>
-)
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => {
+                  setModalResetAberto(false)
+                  setMensagemReset(null)
+                }}
+                className="btn btn-ghost"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleResetSenha}
+                disabled={enviandoReset}
+                className="btn btn-primary"
+              >
+                {enviandoReset ? 'Enviando...' : 'Enviar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  )
 }
