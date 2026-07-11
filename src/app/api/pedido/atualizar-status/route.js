@@ -1,24 +1,29 @@
 import { createClient } from '@supabase/supabase-js'
-import Brevo from '@getbrevo/brevo'
 import { emailSaiuEntrega } from '@/lib/emailSaiuEntrega'
 
 async function enviarEmailBrevo({ para, assunto, html }) {
   try {
-    const apiInstance = new Brevo.TransactionalEmailsApi()
-    apiInstance.setApiKey(
-      Brevo.ApiClient.instance.authentications['api-key'],
-      process.env.BREVO_API_KEY
-    )
+    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'api-key': process.env.BREVO_API_KEY
+      },
+      body: JSON.stringify({
+        sender: { name: 'Tortas da Lika', email: 'tortasdalika@outlook.com' },
+        to: [{ email: para }],
+        subject: assunto,
+        htmlContent: html
+      })
+    })
 
-    const sendSmtpEmail = {
-      sender: { name: 'Tortas da Lika', email: 'tortasdalika@outlook.com' },
-      to: [{ email: para }],
-      subject: assunto,
-      htmlContent: html
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('Erro no Brevo:', response.status, errorText)
+      return false
     }
 
-    const result = await apiInstance.sendTransacEmail(sendSmtpEmail)
-    console.log('Email enviado com sucesso via Brevo:', result)
+    console.log('Email enviado com sucesso via Brevo')
     return true
   } catch (err) {
     console.error('Erro ao enviar email via Brevo:', err)
