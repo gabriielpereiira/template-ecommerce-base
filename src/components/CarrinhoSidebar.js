@@ -1,7 +1,8 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { useCarrinho } from '@/app/context/CarrinhoContext'
-import { useAuth } from '@/app/context/AuthContext'
+import { useCarrinho } from '../app/context/CarrinhoContext'
+import { useAuth } from '../app/context/AuthContext'
+import { supabase } from '@/lib/supabaseClient'
 
 const SERIF = '"Playfair Display", Georgia, serif'
 const SANS = '"Plus Jakarta Sans", sans-serif'
@@ -35,38 +36,35 @@ export default function CarrinhoSidebar() {
   const [cupomErro, setCupomErro] = useState(null)
   const [finalizando, setFinalizando] = useState(false)
   const [toast, setToast] = useState(null)
-
-  // Campos do cliente
   const [nomeCliente, setNomeCliente] = useState('')
   const [telefoneCliente, setTelefoneCliente] = useState('')
 
   useEffect(() => {
-    if (!aberto) return
     let active = true
     async function carregarDados() {
-      try {
-        // Busca nome e telefone da tabela profiles (cadastro)
-        if (usuario) {
-          try {
-            const res = await fetch('/api/perfil?userId=' + usuario.id)
-            const json = await res.json()
-            if (json.success && json.data && active) {
-              if (json.data.nome) setNomeCliente(json.data.nome)
-              if (json.data.telefone) setTelefoneCliente(json.data.telefone)
-            }
-          } catch (e) {
-            // Perfil ainda sem dados, tranquilo
-          }
-        }
+      if (aberto && usuario) {
+        try {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('nome, telefone, cep')
+            .eq('id', usuario.id)
+            .single()
 
-        // Carrega CEP salvo
-        const saved = localStorage.getItem('cep_entrega')
-        if (saved && active) {
-          const digits = String(saved).replace(/\D/g, '').slice(0, 8)
-          setCep(formatarCep(digits))
-          if (digits.length === 8) handleBuscarFrete(digits)
+          if (!active) return
+
+          if (profile) {
+            if (profile.nome) setNomeCliente(profile.nome)
+            if (profile.telefone) setTelefoneCliente(profile.telefone)
+            if (profile.cep) {
+              const digits = String(profile.cep).replace(/\D/g, '').slice(0, 8)
+              setCep(formatarCep(digits))
+              if (digits.length === 8) handleBuscarFrete(digits)
+            }
+          }
+        } catch (e) {
+          // Profile ainda nao existe ou erro, tranquilo
         }
-      } catch (e) {}
+      }
     }
     carregarDados()
     return () => { active = false }
@@ -308,9 +306,9 @@ export default function CarrinhoSidebar() {
           )}
         </div>
 
-        {/* Footer - Formulario */}
+        {/* Footer */}
         <div style={{ borderTop: '1px solid ' + COLORS.border, padding: '20px 24px' }}>
-          {/* Seus dados - sempre visivel */}
+          {/* Seus dados */}
           <div style={{ marginBottom: '16px' }}>
             <p style={{ margin: '0 0 8px', fontSize: '13px', fontWeight: 600, color: COLORS.dark }}>
               Seus dados
@@ -339,7 +337,7 @@ export default function CarrinhoSidebar() {
             </div>
           </div>
 
-          {/* CEP / Frete */}
+          {/* Frete */}
           <div style={{ marginBottom: '16px' }}>
             <p style={{ margin: '0 0 4px', fontSize: '13px', fontWeight: 600, color: COLORS.dark }}>
               CEP para entrega
