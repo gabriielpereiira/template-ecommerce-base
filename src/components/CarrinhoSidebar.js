@@ -209,7 +209,7 @@ export default function CarrinhoSidebar() {
   }
 
   const desconto = cupomData
-    ? cupomData.tipo === 'percentual' ? subtotal * (cupomData.valor / 100) : cupomData.valor
+    ? cupomData.tipo === 'percentual' ? (subtotal + (freteData?.valor_frete || 0)) * (cupomData.valor / 100) : cupomData.valor
     : 0
   const total = subtotal + (freteData?.valor_frete || 0) - desconto
 
@@ -339,10 +339,10 @@ export default function CarrinhoSidebar() {
               <div style={{ display: 'flex', gap: '8px' }}>
                 <input type="text" value={cupomInput}
                   onChange={(e) => setCupomInput(e.target.value.toUpperCase())}
-                  placeholder="Digite o codigo" maxLength={20}
+                  placeholder="Cupom" maxLength={20}
                   style={{
                     flex: 1, padding: '10px 14px', borderRadius: '8px',
-                    border: '1px solid ' + COLORS.border, fontSize: '14px',
+                    border: '1px solid ' + COLORS.border, fontSize: '12px',
                     fontFamily: SANS, color: COLORS.dark, outline: 'none',
                     textTransform: 'uppercase', boxSizing: 'border-box',
                   }}

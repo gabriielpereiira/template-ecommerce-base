@@ -4,8 +4,8 @@ import { createClient } from '@supabase/supabase-js'
 const CUPONS = {
   PRIMEIRA_FATIA: {
     tipo: 'percentual',
-    valor: 15,
-    descricao: '15% de desconto na primeira compra',
+    valor: 25,
+    descricao: '25% de desconto na primeira compra',
     uso_unico: true,
   },
 }
