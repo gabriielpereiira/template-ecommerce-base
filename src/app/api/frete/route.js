@@ -124,28 +124,23 @@ export async function GET(request) {
     const endereco = [viaCepData.logradouro, viaCepData.bairro, viaCepData.localidade, viaCepData.uf, viaCepData.cep]
       .filter(Boolean).join(', ')
 
-    // Tenta calcular distancia real via OSRM
+    // Tenta calcular distancia real via OSRM (so para logica interna, nao expoe)
     let distanciaKm = null
     const partes = [viaCepData.logradouro, viaCepData.bairro, viaCepData.localidade, viaCepData.uf].filter(Boolean)
     const coords = await getCoords(partes)
     if (coords) distanciaKm = await getDistance(coords)
 
-    let valorFrete, metodo, faixaLimite
+    let valorFrete, metodo
 
     if (distanciaKm !== null && distanciaKm <= MAX_KM) {
       valorFrete = calcularPorFaixa(distanciaKm)
       if (valorFrete !== null) {
         metodo = 'osrm_faixa'
-        for (const f of FAIXAS) {
-          if (distanciaKm <= f.limite) { faixaLimite = f.limite; break }
-        }
       } else {
-        // Distancia acima de 15 km, tenta fallback por bairro
         valorFrete = buscarBairro(viaCepData.bairro) || FRETE_PADRAO
         metodo = 'fallback_bairro'
       }
     } else {
-      // OSRM falhou ou distancia > 15 km
       valorFrete = buscarBairro(viaCepData.bairro) || FRETE_PADRAO
       metodo = distanciaKm !== null && distanciaKm > MAX_KM ? 'fora_limite_fallback' : 'fallback_bairro'
     }
@@ -158,8 +153,6 @@ export async function GET(request) {
         valor_frete: valorFinal,
         endereco,
         bairro: viaCepData.bairro || 'Nao identificado',
-        distancia_km: distanciaKm ? Math.round(distanciaKm * 10) / 10 : null,
-        faixa_limite_km: faixaLimite || null,
         metodo,
       },
     })

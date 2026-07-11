@@ -321,9 +321,9 @@ export default function CarrinhoSidebar() {
                   {freteData.endereco}
                 </p>
                 {freteData.distancia_km && (
-                  <p style={{ margin: '2px 0 0', fontSize: '12px', color: COLORS.textSecondary }}>
-                    Distancia: {freteData.distancia_km} km
-                  </p>
+                  <p style={{ margin: '2px 0 0 0', fontSize: '13px', fontWeight: 600, color: COLORS.gold }}>
+                Frete: {formatarPreco(freteData.valor_frete)}
+              </p>
                 )}
                 <p style={{ margin: '4px 0 0', fontSize: '14px', fontWeight: 700, color: COLORS.gold }}>
                   Frete: {formatarPreco(freteData.valor_frete)}
