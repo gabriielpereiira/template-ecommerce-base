@@ -6,7 +6,6 @@
    ================================================================ */
 
 @theme {
-  /* == Cores da marca (unificadas com os componentes) == */
   --color-brand-dark: #2D1B0E;
   --color-brand-dark-light: #4A3728;
   --color-brand-gold: #C4975A;
@@ -20,7 +19,6 @@
   --color-brand-border: #E8E0D8;
   --color-brand-border-light: #F0EAE0;
 
-  /* == Neutros == */
   --color-neutral-50: #FAFAF8;
   --color-neutral-100: #F0EDE8;
   --color-neutral-200: #E0DAD2;
@@ -32,7 +30,6 @@
   --color-neutral-800: #2D271F;
   --color-neutral-900: #1A1610;
 
-  /* == Status (semaforo) == */
   --color-status-warning: #F59E0B;
   --color-status-warning-bg: #FEF3C7;
   --color-status-success: #10B981;
@@ -54,14 +51,18 @@
 }
 
 body {
-  font-family: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
   background-color: var(--color-brand-bg);
   color: var(--color-brand-text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Scrollbar estilizada */
+::selection {
+  background: var(--color-brand-gold);
+  color: white;
+}
+
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -77,14 +78,8 @@ body {
   background: var(--color-neutral-400);
 }
 
-/* Selecao de texto */
-::selection {
-  background: var(--color-brand-gold);
-  color: white;
-}
-
 /* ================================================================
-   BOTOES
+   BOTOES — Premium com gradiente, spring easing e preparacao pro ripple
    ================================================================ */
 
 .btn {
@@ -97,20 +92,28 @@ body {
   border: none;
   font-size: 14px;
   font-weight: 600;
-  font-family: inherit;
+  font-family: "Plus Jakarta Sans", inherit;
   cursor: pointer;
-  transition: all 0.25s ease;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
   text-decoration: none;
   line-height: 1.4;
   letter-spacing: 0.3px;
+  position: relative;
+  overflow: hidden;
+  outline: none;
 }
 
 .btn:hover {
-  transform: translateY(-1px);
+  transform: scale(1.02);
 }
 
 .btn:active {
-  transform: translateY(1px) scale(0.98);
+  transform: scale(0.96);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--color-brand-gold);
+  outline-offset: 3px;
 }
 
 .btn:disabled {
@@ -119,48 +122,125 @@ body {
   transform: none;
 }
 
+/* Ripple container — o span .ripple e gerado via JS */
+.btn .ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.35);
+  transform: scale(0);
+  animation: rippleAnim 0.6s ease-out;
+  pointer-events: none;
+}
+
+.btn-dark .ripple,
+.btn-primary .ripple {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.btn-ghost .ripple {
+  background: rgba(45, 27, 14, 0.12);
+}
+
+@keyframes rippleAnim {
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+/* Variantes de botao */
 .btn-primary {
-  background: var(--color-brand-dark);
+  background: linear-gradient(135deg, #2D1B0E 0%, #4A2F1A 100%);
   color: white;
   box-shadow: 0 2px 8px rgba(45, 27, 14, 0.2);
 }
+
 .btn-primary:hover {
-  background: #3D2212;
-  box-shadow: 0 6px 20px rgba(45, 27, 14, 0.25);
+  background: linear-gradient(135deg, #3D2212 0%, #5A3A22 100%);
+  box-shadow: 0 6px 24px rgba(45, 27, 14, 0.3);
 }
 
 .btn-gold {
-  background: var(--color-brand-gold);
+  background: linear-gradient(135deg, #C4975A 0%, #D4A97A 100%);
   color: white;
   box-shadow: 0 2px 8px rgba(196, 151, 90, 0.3);
 }
+
 .btn-gold:hover {
-  background: var(--color-brand-gold-dark);
-  box-shadow: 0 6px 20px rgba(196, 151, 90, 0.35);
+  background: linear-gradient(135deg, #B8894C 0%, #C99E6E 100%);
+  box-shadow: 0 6px 24px rgba(196, 151, 90, 0.4);
 }
 
 .btn-ghost {
   background: transparent;
   color: var(--color-brand-dark);
-  border: 1px solid var(--color-brand-border);
+  border: 1.5px solid var(--color-brand-border);
+  box-shadow: none;
 }
+
 .btn-ghost:hover {
   background: var(--color-brand-bg-soft);
   border-color: var(--color-brand-gold);
+  color: var(--color-brand-gold);
+  box-shadow: none;
 }
 
+.btn-ghost-gold {
+  background: transparent;
+  color: var(--color-brand-gold);
+  border: 1.5px solid var(--color-brand-gold);
+  box-shadow: none;
+}
+
+.btn-ghost-gold:hover {
+  background: var(--color-brand-gold);
+  color: white;
+  box-shadow: 0 4px 16px rgba(196, 151, 90, 0.3);
+}
+
+/* Tamanhos */
 .btn-sm {
   padding: 6px 16px;
   font-size: 13px;
+  border-radius: 999px;
 }
 
 .btn-lg {
   padding: 14px 32px;
   font-size: 15px;
+  border-radius: 999px;
 }
 
 .btn-block {
   width: 100%;
+}
+
+/* Estado de loading */
+.btn-loading {
+  position: relative;
+  color: transparent !important;
+  pointer-events: none;
+}
+
+.btn-loading::after {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: btnSpinner 0.6s linear infinite;
+}
+
+.btn-ghost.btn-loading::after,
+.btn-ghost-gold.btn-loading::after {
+  border-color: rgba(45, 27, 14, 0.15);
+  border-top-color: var(--color-brand-gold);
+}
+
+@keyframes btnSpinner {
+  to { transform: rotate(360deg); }
 }
 
 /* ================================================================
@@ -172,17 +252,13 @@ body {
   border-radius: 16px;
   box-shadow: 0 1px 3px rgba(45, 27, 14, 0.06), 0 1px 2px rgba(45, 27, 14, 0.04);
   border: 1px solid var(--color-brand-border-light);
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .card-hover:hover {
-  box-shadow: 0 4px 12px rgba(45, 27, 14, 0.08), 0 2px 4px rgba(45, 27, 14, 0.04);
+  box-shadow: 0 8px 30px rgba(45, 27, 14, 0.08), 0 2px 8px rgba(45, 27, 14, 0.04);
   border-color: var(--color-brand-border);
   transform: translateY(-2px);
-}
-
-.card-status {
-  border-top: 3px solid var(--color-brand-gold);
 }
 
 /* ================================================================
@@ -193,10 +269,10 @@ body {
   width: 100%;
   padding: 10px 14px;
   font-size: 14px;
-  font-family: inherit;
+  font-family: "Plus Jakarta Sans", sans-serif;
   color: var(--color-brand-text);
   background: white;
-  border: 1px solid var(--color-brand-border);
+  border: 1.5px solid var(--color-brand-border);
   border-radius: 10px;
   outline: none;
   transition: all 0.25s ease;
@@ -222,6 +298,7 @@ body {
   font-size: 13px;
   font-weight: 600;
   color: var(--color-brand-text);
+  font-family: "Plus Jakarta Sans", sans-serif;
 }
 
 /* ================================================================
@@ -231,12 +308,14 @@ body {
 .badge {
   display: inline-flex;
   align-items: center;
+  gap: 4px;
   padding: 4px 12px;
   border-radius: 999px;
   font-size: 12px;
   font-weight: 700;
   line-height: 1.4;
   letter-spacing: 0.2px;
+  font-family: "Plus Jakarta Sans", sans-serif;
 }
 
 .badge-warning {
@@ -265,18 +344,12 @@ body {
 }
 
 /* ================================================================
-   ANIMACOES PRINCIPAIS
+   ANIMACOES
    ================================================================ */
 
 @keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes fadeIn {
@@ -285,29 +358,20 @@ body {
 }
 
 @keyframes scaleIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
 }
 
-/* Skeleton shimmer */
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
 }
 
-/* Pulse suave pra badges ativos */
-@keyframes pulse {
+@keyframes pulseSoft {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.85; }
+  50% { opacity: 0.8; }
 }
 
-/* Slide lateral pra sidebar */
 @keyframes slideInRight {
   from { transform: translateX(100%); }
   to { transform: translateX(0); }
@@ -318,27 +382,30 @@ body {
   to { transform: translateX(100%); }
 }
 
+@keyframes btnSpinner {
+  to { transform: rotate(360deg); }
+}
+
 /* ================================================================
    CLASSES DE ANIMACAO
    ================================================================ */
 
 .anim-fade-in-up {
-  animation: fadeInUp 0.6s ease forwards;
+  animation: fadeInUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
 .anim-fade-in {
-  animation: fadeIn 0.4s ease forwards;
+  animation: fadeIn 0.3s ease forwards;
 }
 
 .anim-scale-in {
-  animation: scaleIn 0.4s ease forwards;
+  animation: scaleIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
 .anim-slide-in-right {
-  animation: slideInRight 0.35s ease forwards;
+  animation: slideInRight 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
-/* Atrasos escalonados */
 .anim-delay-1 { animation-delay: 0.05s; }
 .anim-delay-2 { animation-delay: 0.1s; }
 .anim-delay-3 { animation-delay: 0.15s; }
@@ -346,7 +413,10 @@ body {
 .anim-delay-5 { animation-delay: 0.25s; }
 .anim-delay-6 { animation-delay: 0.3s; }
 
-/* Skeleton loading */
+/* ================================================================
+   SKELETON LOADING — variantes realistas
+   ================================================================ */
+
 .skeleton {
   background: linear-gradient(
     90deg,
@@ -355,13 +425,46 @@ body {
     var(--color-neutral-100) 75%
   );
   background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
+  animation: shimmer 1.5s ease-in-out infinite;
   border-radius: 8px;
 }
 
-/* Badge com pulse */
-.badge-pulse {
-  animation: pulse 2s ease-in-out infinite;
+.skeleton-text {
+  height: 14px;
+  margin-bottom: 8px;
+  border-radius: 4px;
+}
+
+.skeleton-text-sm {
+  height: 10px;
+  width: 60%;
+  margin-bottom: 6px;
+  border-radius: 4px;
+}
+
+.skeleton-title {
+  height: 22px;
+  width: 40%;
+  margin-bottom: 16px;
+  border-radius: 4px;
+}
+
+.skeleton-card {
+  height: 120px;
+  border-radius: 16px;
+  margin-bottom: 12px;
+}
+
+.skeleton-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+
+.skeleton-badge {
+  width: 80px;
+  height: 24px;
+  border-radius: 999px;
 }
 
 /* ================================================================
