@@ -76,7 +76,8 @@ export function AuthProvider({ children }) {
     }
   }
 
-  async function cadastrar(email, senha) {
+  async function cadastrar(dados) {
+    const { email, senha } = dados
     try {
       const response = await fetch('https://nqjkcqloenliiftcgvro.supabase.co/auth/v1/signup', {
         method: 'POST',
@@ -93,12 +94,12 @@ export function AuthProvider({ children }) {
       const data = await response.json()
 
       if (!response.ok) {
-        return { data: null, error: { message: data.msg || data.error || 'Erro ao criar conta' } }
+        return { error: { message: data.msg || data.error || 'Erro ao criar conta' } }
       }
 
       return { data, error: null }
     } catch (err) {
-      return { data: null, error: { message: err.message || 'Erro ao criar conta' } }
+      return { error: { message: err.message || 'Erro ao criar conta' } }
     }
   }
 
