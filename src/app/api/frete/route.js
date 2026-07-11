@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server'
 import { storeConfig } from '@/config/store'
 
-const ORIGIN_LAT = -32.0745
-const ORIGIN_LON = -52.1200
+const ORIGIN_LAT = -32.06035
+const ORIGIN_LON = -52.15057
 const USER_AGENT = 'TortasDaLika/1.0'
+const MAX_KM = storeConfig.entrega.maxDistanceKm
 
-const TAXA_FAIXAS = [
+const FAIXAS = [
   { limite: 2, valor: 8.00 },
   { limite: 4, valor: 10.00 },
   { limite: 6, valor: 12.00 },
@@ -15,25 +16,71 @@ const TAXA_FAIXAS = [
   { limite: 15, valor: 25.00 },
 ]
 
-function calcularFretePorFaixa(distanciaKm) {
-  for (const faixa of TAXA_FAIXAS) {
-    if (distanciaKm <= faixa.limite) {
-      return faixa.valor
-    }
+const FRETE_POR_BAIRRO = {
+  'vila sao joao': 8.00,
+  hidraulica: 10.00,
+  centro: 12.00,
+  'cidade nova': 12.00,
+  'sao paulo': 12.00,
+  'vila maria': 12.00,
+  'vila juncao': 12.00,
+  'getulio vargas': 12.00,
+  'vila militar': 12.00,
+  carreiros: 12.00,
+  'castelo branco': 12.00,
+  cohab: 12.00,
+  'lar gaucho': 12.00,
+  'santa rita de cassia': 12.00,
+  'parque marinha': 15.00,
+  'vila sao miguel': 15.00,
+  'cidade de agueda': 15.00,
+  'vila sao jorge': 15.00,
+  lagoa: 15.00,
+  profilurbi: 15.00,
+  'parque residencial sao pedro': 15.00,
+  cassino: 18.00,
+  quinta: 18.00,
+  'vila bernardeth': 22.00,
+  'vila maria jose': 22.00,
+  'nossa senhora dos navegantes': 22.00,
+  senandes: 22.00,
+  'frederico ernesto buchholz': 22.00,
+  'miguel de castro moreira': 22.00,
+  bolaxa: 25.00,
+  'povo novo': 25.00,
+  taim: 25.00,
+  america: 25.00,
+  'zona portuaria': 15.00,
+}
+
+const FRETE_PADRAO = 15.00
+
+function calcularPorFaixa(distanciaKm) {
+  for (const faixa of FAIXAS) {
+    if (distanciaKm <= faixa.limite) return faixa.valor
   }
-  // Acima de 15 km (fora da area de entrega)
   return null
 }
 
-async function getCoords(enderecoPartes) {
-  const queries = []
-  if (enderecoPartes.length >= 2) queries.push(enderecoPartes.join(', '))
-  queries.push(`${enderecoPartes[0]}, ${enderecoPartes[1]}, ${enderecoPartes[2]}, ${enderecoPartes[3]}`)
-  if (enderecoPartes[1]) queries.push(`${enderecoPartes[1]}, ${enderecoPartes[2]}, ${enderecoPartes[3]}`)
+function buscarBairro(nome) {
+  if (!nome) return null
+  const n = nome.toLowerCase().trim()
+  if (FRETE_POR_BAIRRO[n] !== undefined) return FRETE_POR_BAIRRO[n]
+  for (const [key, valor] of Object.entries(FRETE_POR_BAIRRO)) {
+    if (n.includes(key) || key.includes(n)) return valor
+  }
+  return null
+}
 
-  for (const query of queries) {
+async function getCoords(partes) {
+  const queries = [
+    partes.filter(Boolean).join(', '),
+    `${partes[0] || ''}, ${partes[1] || ''}, ${partes[2] || ''}, ${partes[3] || ''}`,
+  ]
+  if (partes[1]) queries.push(`${partes[1]}, ${partes[2]}, ${partes[3]}`)
+  for (const q of queries) {
     try {
-      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&countrycodes=br`
+      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1&countrycodes=br`
       const res = await fetch(url, { headers: { 'User-Agent': USER_AGENT } })
       if (res.ok) {
         const data = await res.json()
@@ -47,7 +94,7 @@ async function getCoords(enderecoPartes) {
 async function getDistance(coords) {
   try {
     const url = `https://router.project-osrm.org/route/v1/driving/${ORIGIN_LON},${ORIGIN_LAT};${coords.lon},${coords.lat}?overview=false`
-    const res = await fetch(url, { headers: { 'User-Agent': USER_AGENT } })
+    const res = await fetch(url)
     if (res.ok) {
       const data = await res.json()
       if (data?.routes?.length > 0) return data.routes[0].distance / 1000
@@ -70,38 +117,37 @@ export async function GET(request) {
     if (!viaCepRes.ok) throw new Error('Falha ao consultar ViaCEP')
     const viaCepData = await viaCepRes.json()
     if (viaCepData.erro) throw new Error('CEP nao encontrado')
-
     if (viaCepData.localidade?.toUpperCase() !== 'RIO GRANDE' || viaCepData.uf?.toUpperCase() !== 'RS') {
       throw new Error('Entregas disponiveis apenas para Rio Grande - RS')
     }
 
-    const endereco = [
-      viaCepData.logradouro, viaCepData.bairro,
-      viaCepData.localidade, viaCepData.uf, viaCepData.cep,
-    ].filter(Boolean).join(', ')
+    const endereco = [viaCepData.logradouro, viaCepData.bairro, viaCepData.localidade, viaCepData.uf, viaCepData.cep]
+      .filter(Boolean).join(', ')
 
-    // Busca coordenadas e distancia
+    // Tenta calcular distancia real via OSRM
     let distanciaKm = null
-    let valorFrete = null
-    let faixaUsada = null
-
     const partes = [viaCepData.logradouro, viaCepData.bairro, viaCepData.localidade, viaCepData.uf].filter(Boolean)
     const coords = await getCoords(partes)
     if (coords) distanciaKm = await getDistance(coords)
 
-    if (distanciaKm !== null) {
-      valorFrete = calcularFretePorFaixa(distanciaKm)
-      // Descobre qual faixa foi usada
-      for (const faixa of TAXA_FAIXAS) {
-        if (distanciaKm <= faixa.limite) {
-          faixaUsada = faixa.limite
-          break
-        }
-      }
-    }
+    let valorFrete, metodo, faixaLimite
 
-    if (valorFrete === null) {
-      throw new Error('CEP fora da area de entrega (maximo 15 km)')
+    if (distanciaKm !== null && distanciaKm <= MAX_KM) {
+      valorFrete = calcularPorFaixa(distanciaKm)
+      if (valorFrete !== null) {
+        metodo = 'osrm_faixa'
+        for (const f of FAIXAS) {
+          if (distanciaKm <= f.limite) { faixaLimite = f.limite; break }
+        }
+      } else {
+        // Distancia acima de 15 km, tenta fallback por bairro
+        valorFrete = buscarBairro(viaCepData.bairro) || FRETE_PADRAO
+        metodo = 'fallback_bairro'
+      }
+    } else {
+      // OSRM falhou ou distancia > 15 km
+      valorFrete = buscarBairro(viaCepData.bairro) || FRETE_PADRAO
+      metodo = distanciaKm !== null && distanciaKm > MAX_KM ? 'fora_limite_fallback' : 'fallback_bairro'
     }
 
     const valorFinal = Math.round(valorFrete * 100) / 100
@@ -113,8 +159,8 @@ export async function GET(request) {
         endereco,
         bairro: viaCepData.bairro || 'Nao identificado',
         distancia_km: distanciaKm ? Math.round(distanciaKm * 10) / 10 : null,
-        faixa_limite_km: faixaUsada,
-        metodo: 'faixa_distancia',
+        faixa_limite_km: faixaLimite || null,
+        metodo,
       },
     })
   } catch (error) {
