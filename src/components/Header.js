@@ -48,6 +48,11 @@ export default function Header() {
 
   const handleCarrinho = () => setAberto(true)
 
+  const getInitial = () => {
+    if (usuario && usuario.email) return usuario.email.charAt(0).toUpperCase()
+    return '?'
+  }
+
   return (
     <header style={{
       position: 'sticky',
@@ -154,7 +159,6 @@ export default function Header() {
           {/* Botao Sacolinha */}
           <button
             onClick={handleCarrinho}
-            className="btn btn-ghost-gold"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -200,28 +204,59 @@ export default function Header() {
             )}
           </button>
 
-          {/* Usuario */}
+          {/* Usuario logado - circulo com inicial + sair */}
           {usuario ? (
-            <button
-              onClick={logout}
-              className="btn btn-ghost"
-              style={{
-                padding: '8px 16px',
-                borderRadius: 999,
-                border: '1px solid var(--color-brand-border)',
-                color: 'var(--color-brand-text-secondary)',
-                background: 'transparent',
-                fontSize: '13px',
-                fontWeight: 500,
-                cursor: 'pointer',
-                fontFamily: '"Plus Jakarta Sans", sans-serif',
-                transition: 'all 0.25s ease',
-              }}
-            >
-              Sair
-            </button>
+            <>
+              <Link
+                href="/perfil"
+                style={{
+                  width: 42,
+                  height: 42,
+                  borderRadius: '50%',
+                  background: '#C4975A',
+                  color: '#FFFFFF',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 18,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  textDecoration: 'none',
+                  border: '2px solid transparent',
+                  transition: 'all 0.2s ease',
+                  fontFamily: '"Plus Jakarta Sans", sans-serif',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = '#2D1B0E'
+                  e.currentTarget.style.transform = 'scale(1.1)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'transparent'
+                  e.currentTarget.style.transform = 'scale(1)'
+                }}
+              >
+                {getInitial()}
+              </Link>
+              <button
+                onClick={logout}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: 999,
+                  border: '1px solid var(--color-brand-border)',
+                  color: 'var(--color-brand-text-secondary)',
+                  background: 'transparent',
+                  fontSize: '13px',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  fontFamily: '"Plus Jakarta Sans", sans-serif',
+                  transition: 'all 0.25s ease',
+                }}
+              >
+                Sair
+              </button>
+            </>
           ) : (
-            <Link href="/login" className="btn btn-primary" style={{
+            <Link href="/login" style={{
               padding: '8px 20px',
               borderRadius: 999,
               border: 'none',
