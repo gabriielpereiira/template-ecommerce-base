@@ -77,15 +77,12 @@ export function AuthProvider({ children }) {
   }
 
   async function cadastrar(email, senha) {
-    const url = 'https://nqjkcqloenliiftcgvro.supabase.co/auth/v1/signup'
-    const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xamtjcWxvZW5saWlmdGNndnJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4Nzk0ODUsImV4cCI6MjA5NzQ1NTQ4NX0.lnqoY32fPB9eQP0xKlDeetw4iOUblsoy_mDQk4UpJPg'
-
     try {
-      const response = await fetch(url, {
+      const response = await fetch('https://nqjkcqloenliiftcgvro.supabase.co/auth/v1/signup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'apikey': apiKey,
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xamtjcWxvZW5saWlmdGNndnJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4Nzk0ODUsImV4cCI6MjA5NzQ1NTQ4NX0.lnqoY32fPB9eQP0xKlDeetw4iOUblsoy_mDQk4UpJPg',
         },
         body: JSON.stringify({
           email: email,
