@@ -1,6 +1,30 @@
 import { createClient } from '@supabase/supabase-js'
-import { Resend } from 'resend'
+import Brevo from '@getbrevo/brevo'
 import { emailPedidoConfirmado } from '@/lib/emailPedidoConfirmado'
+
+async function enviarEmailBrevo({ para, assunto, html }) {
+  try {
+    const apiInstance = new Brevo.TransactionalEmailsApi()
+    apiInstance.setApiKey(
+      Brevo.ApiClient.instance.authentications['api-key'],
+      process.env.BREVO_API_KEY
+    )
+
+    const sendSmtpEmail = {
+      sender: { name: 'Tortas da Lika', email: 'tortasdalika@outlook.com' },
+      to: [{ email: para }],
+      subject: assunto,
+      htmlContent: html
+    }
+
+    const result = await apiInstance.sendTransacEmail(sendSmtpEmail)
+    console.log('Email enviado com sucesso via Brevo:', result)
+    return true
+  } catch (err) {
+    console.error('Erro ao enviar email via Brevo:', err)
+    return false
+  }
+}
 
 export async function POST(request) {
   try {
@@ -27,33 +51,27 @@ export async function POST(request) {
 
     // Disparar email se pagamento aprovado
     if (status === 'approved') {
-      try {
-        const resend = new Resend(process.env.RESEND_API_KEY)
+      const { data: pedido } = await supabase
+        .from('pedidos')
+        .select('nome_cliente, email_cliente, total, itens')
+        .eq('id', pedidoId)
+        .single()
 
-        const { data: pedido } = await supabase
-          .from('pedidos')
-          .select('nome_cliente, email_cliente, total, itens')
-          .eq('id', pedidoId)
-          .single()
+      if (pedido?.email_cliente) {
+        const html = emailPedidoConfirmado({
+          nomeCliente: pedido.nome_cliente || pedido.email_cliente.split('@')[0],
+          pedidoId,
+          total: pedido.total || 0,
+          itens: Array.isArray(pedido.itens) ? pedido.itens : []
+        })
 
-        if (pedido?.email_cliente) {
-          const result = await resend.emails.send({
-            from: 'Tortas da Lika <onboarding@resend.dev>',
-            to: pedido.email_cliente,
-            subject: 'Pedido Confirmado - Tortas da Lika',
-            html: emailPedidoConfirmado({
-              nomeCliente: pedido.nome_cliente || pedido.email_cliente.split('@')[0],
-              pedidoId,
-              total: pedido.total || 0,
-              itens: Array.isArray(pedido.itens) ? pedido.itens : []
-            })
-          })
-          console.log('Email enviado com sucesso:', result)
-        } else {
-          console.log('Pedido sem email_cliente, email nao enviado')
-        }
-      } catch (emailError) {
-        console.error('Erro ao enviar email de confirmacao:', emailError)
+        await enviarEmailBrevo({
+          para: pedido.email_cliente,
+          assunto: 'Pedido Confirmado - Tortas da Lika',
+          html
+        })
+      } else {
+        console.log('Pedido sem email_cliente, email nao enviado')
       }
     }
 
@@ -114,32 +132,26 @@ export async function GET(request) {
         })
         .eq('id', externalReference)
 
-      // Tenta enviar email
-      try {
-        const resend = new Resend(process.env.RESEND_API_KEY)
+      // Enviar email
+      const { data: pedido } = await supabase
+        .from('pedidos')
+        .select('nome_cliente, email_cliente, total, itens')
+        .eq('id', externalReference)
+        .single()
 
-        const { data: pedido } = await supabase
-          .from('pedidos')
-          .select('nome_cliente, email_cliente, total, itens')
-          .eq('id', externalReference)
-          .single()
+      if (pedido?.email_cliente) {
+        const html = emailPedidoConfirmado({
+          nomeCliente: pedido.nome_cliente || pedido.email_cliente.split('@')[0],
+          pedidoId: externalReference,
+          total: pedido.total || 0,
+          itens: Array.isArray(pedido.itens) ? pedido.itens : []
+        })
 
-        if (pedido?.email_cliente) {
-          const result = await resend.emails.send({
-            from: 'Tortas da Lika <onboarding@resend.dev>',
-            to: pedido.email_cliente,
-            subject: 'Pedido Confirmado - Tortas da Lika',
-            html: emailPedidoConfirmado({
-              nomeCliente: pedido.nome_cliente || pedido.email_cliente.split('@')[0],
-              pedidoId: externalReference,
-              total: pedido.total || 0,
-              itens: Array.isArray(pedido.itens) ? pedido.itens : []
-            })
-          })
-          console.log('Email enviado com sucesso (GET):', result)
-        }
-      } catch (emailError) {
-        console.error('Erro ao enviar email (GET):', emailError)
+        await enviarEmailBrevo({
+          para: pedido.email_cliente,
+          assunto: 'Pedido Confirmado - Tortas da Lika',
+          html
+        })
       }
 
       // Salva na tabela payments
