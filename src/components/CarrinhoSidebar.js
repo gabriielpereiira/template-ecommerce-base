@@ -109,17 +109,20 @@ export default function CarrinhoSidebar() {
     setCupomCarregando(true)
     setCupomErro(null)
     try {
-      const res = await fetch('/api/cupom/validar', {
+      const res = await fetch('/api/cupom', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ codigo, subtotal })
+        body: JSON.stringify({
+          codigo,
+          email_cliente: usuario?.email || ''
+        })
       })
       const json = await res.json()
-      if (res.ok && json.success) {
+      if (res.ok && json.success && json.data) {
         setCupomData(json.data)
         setCupomInput('')
       } else {
-        setCupomErro(json.erro || 'Cupom invalido')
+        setCupomErro(json?.erro || 'Cupom invalido')
       }
     } catch (e) {
       setCupomErro('Erro ao validar cupom')
@@ -320,11 +323,6 @@ export default function CarrinhoSidebar() {
                 <p style={{ margin: 0, fontSize: '13px', color: COLORS.dark, fontWeight: 600 }}>
                   {freteData.endereco}
                 </p>
-                {freteData.distancia_km && (
-                  <p style={{ margin: '2px 0 0 0', fontSize: '13px', fontWeight: 600, color: COLORS.gold }}>
-                Frete: {formatarPreco(freteData.valor_frete)}
-              </p>
-                )}
                 <p style={{ margin: '4px 0 0', fontSize: '14px', fontWeight: 700, color: COLORS.gold }}>
                   Frete: {formatarPreco(freteData.valor_frete)}
                 </p>
