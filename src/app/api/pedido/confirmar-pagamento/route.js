@@ -32,17 +32,17 @@ export async function POST(request) {
 
         const { data: pedido } = await supabase
           .from('pedidos')
-          .select('cliente_nome, cliente_email, total, itens')
+          .select('nome_cliente, email_cliente, total, itens')
           .eq('id', pedidoId)
           .single()
 
-        if (pedido?.cliente_email) {
+        if (pedido?.email_cliente) {
           const result = await resend.emails.send({
             from: 'Tortas da Lika <onboarding@resend.dev>',
-            to: pedido.cliente_email,
+            to: pedido.email_cliente,
             subject: 'Pedido Confirmado - Tortas da Lika',
             html: emailPedidoConfirmado({
-              nomeCliente: pedido.cliente_nome || pedido.cliente_email.split('@')[0],
+              nomeCliente: pedido.nome_cliente || pedido.email_cliente.split('@')[0],
               pedidoId,
               total: pedido.total || 0,
               itens: Array.isArray(pedido.itens) ? pedido.itens : []
@@ -50,7 +50,7 @@ export async function POST(request) {
           })
           console.log('Email enviado com sucesso:', result)
         } else {
-          console.log('Pedido sem cliente_email, email nao enviado')
+          console.log('Pedido sem email_cliente, email nao enviado')
         }
       } catch (emailError) {
         console.error('Erro ao enviar email de confirmacao:', emailError)
@@ -120,17 +120,17 @@ export async function GET(request) {
 
         const { data: pedido } = await supabase
           .from('pedidos')
-          .select('cliente_nome, cliente_email, total, itens')
+          .select('nome_cliente, email_cliente, total, itens')
           .eq('id', externalReference)
           .single()
 
-        if (pedido?.cliente_email) {
+        if (pedido?.email_cliente) {
           const result = await resend.emails.send({
             from: 'Tortas da Lika <onboarding@resend.dev>',
-            to: pedido.cliente_email,
+            to: pedido.email_cliente,
             subject: 'Pedido Confirmado - Tortas da Lika',
             html: emailPedidoConfirmado({
-              nomeCliente: pedido.cliente_nome || pedido.cliente_email.split('@')[0],
+              nomeCliente: pedido.nome_cliente || pedido.email_cliente.split('@')[0],
               pedidoId: externalReference,
               total: pedido.total || 0,
               itens: Array.isArray(pedido.itens) ? pedido.itens : []
