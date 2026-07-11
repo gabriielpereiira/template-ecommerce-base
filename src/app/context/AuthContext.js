@@ -76,7 +76,7 @@ export function AuthProvider({ children }) {
     }
   }
 
-    async function cadastrar(email, senha) {
+  async function cadastrar(email, senha) {
     const { data, error } = await supabase.auth.signUp({
       email: email,
       password: senha,
