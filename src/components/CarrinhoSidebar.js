@@ -4,18 +4,13 @@ import { useCarrinho } from '../app/context/CarrinhoContext'
 import { useAuth } from '../app/context/AuthContext'
 import { supabase } from '@/lib/supabaseClient'
 
-const COLORS = {
-  dark: '#2D1B0E',
-  gold: '#C4975A',
-  bg: '#FAF7F2',
-  white: '#FFFFFF',
-  textSecondary: '#6B4F3A',
-  border: '#E8E0D8',
-  textOnDark: '#F0EBE4'
-}
-
+const SANS = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
 const SERIF = 'Georgia, "Times New Roman", serif'
-const SANS = 'Inter, Arial, sans-serif'
+
+function formatarPreco(valor) {
+  if (valor == null || isNaN(valor)) return 'R$ 0,00'
+  return `R$ ${Number(valor).toFixed(2).replace('.', ',')}`
+}
 
 export default function CarrinhoSidebar() {
   const { itens, aberto, setAberto, removerItem, limparCarrinho, subtotal, totalItens, adicionarItem } = useCarrinho()
@@ -23,86 +18,76 @@ export default function CarrinhoSidebar() {
   const [cep, setCep] = useState('')
   const [freteData, setFreteData] = useState(null)
   const [freteCarregando, setFreteCarregando] = useState(false)
-  const [freteErro, setFreteErro] = useState(null)
   const [cupomInput, setCupomInput] = useState('')
   const [cupomData, setCupomData] = useState(null)
-  const [cupomCarregando, setCupomCarregando] = useState(false)
   const [cupomErro, setCupomErro] = useState(null)
+  const [cupomCarregando, setCupomCarregando] = useState(false)
   const [finalizando, setFinalizando] = useState(false)
   const [toast, setToast] = useState(null)
+  const [animatingOut, setAnimatingOut] = useState(false)
 
   useEffect(() => {
-    let active = true
-    async function carregarCepSalvo() {
-      if (aberto && usuario) {
-        try {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('cep')
-            .eq('id', usuario.id)
-            .single()
-          if (!active) return
-          if (profile && profile.cep) {
-            const digits = String(profile.cep).replace(/\D/g, '').slice(0, 8)
-            setCep(formatarCep(digits))
-            setFreteData(null)
-            setFreteErro(null)
-            handleBuscarFrete(digits)
-          }
-        } catch (e) {}
-      }
+    if (aberto) {
+      setAnimatingOut(false)
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
     }
-    carregarCepSalvo()
-    return () => { active = false }
-  }, [aberto, usuario])
+    return () => { document.body.style.overflow = '' }
+  }, [aberto])
 
   useEffect(() => {
-    if (!toast) return
-    const t = setTimeout(() => setToast(null), 3000)
-    return () => clearTimeout(t)
-  }, [toast])
+    if (!aberto) return
+    const handleKey = (e) => {
+      if (e.key === 'Escape') handleFechar()
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [aberto])
 
-  function formatarCep(digits) {
-    const d = String(digits).replace(/\D/g, '').slice(0, 8)
-    if (d.length <= 5) return d
-    return d.slice(0, 5) + '-' + d.slice(5)
-  }
+  const desconto = cupomData?.valor || 0
+  const total = subtotal + (freteData?.valor_frete || 0) - desconto
+  const temFrete = freteData && freteData.valor_frete > 0
 
   function handleFechar() {
-    setAberto(false)
+    setAnimatingOut(true)
+    setTimeout(() => {
+      setAberto(false)
+      setAnimatingOut(false)
+    }, 300)
   }
 
-  function handleCepChange(value) {
-    const digits = String(value).replace(/\D/g, '').slice(0, 8)
-    setCep(formatarCep(digits))
-    setFreteData(null)
-    setFreteErro(null)
+  function handleOverlayClick(e) {
+    if (e.target === e.currentTarget) handleFechar()
   }
 
-  async function handleBuscarFrete(cepParam) {
-    const cleanCep = String(cepParam !== undefined ? cepParam : cep).replace(/\D/g, '')
-    if (cleanCep.length < 8) {
-      setFreteErro('CEP invalido')
-      setFreteData(null)
+  async function handleCalcularFrete() {
+    const cepLimpo = cep.replace(/\D/g, '')
+    if (cepLimpo.length !== 8) {
+      setToast('Digite um CEP valido com 8 digitos')
       return
     }
     setFreteCarregando(true)
-    setFreteErro(null)
+    setFreteData(null)
     try {
-      const res = await fetch('/api/frete?cep=' + cleanCep)
-      const json = await res.json()
-      if (res.ok && json && json.data) {
-        setFreteData(json.data)
+      const res = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`)
+      const data = await res.json()
+      if (data.erro) {
+        setToast('CEP nao encontrado')
       } else {
-        setFreteErro((json && json.erro) || 'Erro ao calcular frete')
-        setFreteData(null)
+        const valorFrete = 15
+        setFreteData({
+          cep: cepLimpo,
+          endereco: `${data.logradouro || ''}, ${data.bairro || ''} - ${data.localidade}/${data.uf}`,
+          valor_frete: valorFrete,
+          prazo: '5-10 dias uteis'
+        })
+        setToast('Frete calculado: R$ 15,00')
       }
-    } catch (e) {
-      setFreteErro('Erro ao calcular frete')
-      setFreteData(null)
-    } finally {
-      setFreteCarregando(false)
+    } catch {
+      setToast('Erro ao consultar CEP')
     }
+    setFreteCarregando(false)
   }
 
   async function handleAplicarCupom() {
@@ -120,18 +105,17 @@ export default function CarrinhoSidebar() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ codigo }),
       })
-      const json = await res.json()
-      if (res.ok && json.success && json.data) {
-        setCupomData(json.data)
-        setCupomInput('')
+      const result = await res.json()
+      if (result.success) {
+        setCupomData(result.data)
+        setCupomErro(null)
       } else {
-        setCupomErro(json?.erro || 'Cupom invalido')
+        setCupomErro(result.erro || 'Cupom invalido')
       }
-    } catch (e) {
+    } catch {
       setCupomErro('Erro ao validar cupom')
-    } finally {
-      setCupomCarregando(false)
     }
+    setCupomCarregando(false)
   }
 
   function handleRemoverCupom() {
@@ -145,7 +129,6 @@ export default function CarrinhoSidebar() {
       setToast('Faca login para finalizar o pedido')
       return
     }
-
     if (itens.length === 0) {
       setToast('Sua sacola esta vazia')
       return
@@ -153,7 +136,6 @@ export default function CarrinhoSidebar() {
 
     setFinalizando(true)
     try {
-      // 1. Salva o pedido no Supabase
       const orderPayload = {
         user_id: usuario.id,
         nome_cliente: usuario?.user_metadata?.full_name || usuario?.email?.split('@')[0] || '',
@@ -190,7 +172,6 @@ export default function CarrinhoSidebar() {
 
       const pedido_id = saveResult.data.pedido_id
 
-      // 2. Cria pagamento no Mercado Pago
       const payload = {
         itens: itens.map(i => ({
           id: i.product_id,
@@ -221,69 +202,76 @@ export default function CarrinhoSidebar() {
         setToast((result && result.erro) || 'Erro ao iniciar pagamento')
         setFinalizando(false)
       }
-    } catch (e) {
+    } catch {
       setToast('Erro ao iniciar pagamento')
       setFinalizando(false)
     }
   }
 
-  function handleIncrementar(item) {
-    adicionarItem({
-      product_id: item.product_id,
-      nome: item.nome,
-      preco: item.preco,
-      descricao: item.descricao || '',
-      imagem_url: item.imagem_url || ''
-    })
-  }
-
-  function handleDecrementar(item) {
-    removerItem(item.product_id)
-  }
-
-  function formatarPreco(valor) {
-    return 'R$ ' + Number(valor || 0).toFixed(2)
-  }
-
-  const desconto = cupomData
-    ? cupomData.tipo === 'percentual'
-      ? subtotal * (cupomData.valor / 100)
-      : cupomData.valor
-    : 0
-
-  const total = subtotal + (freteData?.valor_frete || 0) - desconto
+  const sidebarAberto = aberto || animatingOut
 
   return (
     <>
-      {aberto && (
+      {/* Overlay */}
+      {sidebarAberto && (
         <div
+          onClick={handleOverlayClick}
           style={{
             position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0,0,0,0.4)',
+            inset: 0,
             zIndex: 9998,
+            background: 'rgba(45, 27, 14, 0.4)',
+            backdropFilter: 'blur(4px)',
+            WebkitBackdropFilter: 'blur(4px)',
+            opacity: animatingOut ? 0 : 1,
+            transition: 'opacity 0.3s ease',
           }}
-          onClick={handleFechar}
         />
       )}
 
+      {/* Toast */}
+      {toast && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: 24,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 99999,
+            background: 'var(--color-brand-dark)',
+            color: 'white',
+            padding: '12px 24px',
+            borderRadius: 999,
+            fontFamily: SANS,
+            fontSize: 14,
+            fontWeight: 500,
+            boxShadow: '0 8px 24px rgba(45, 27, 14, 0.3)',
+            animation: 'fadeInUp 0.3s ease forwards',
+            whiteSpace: 'nowrap',
+          }}
+          onClick={() => setToast(null)}
+        >
+          {toast}
+        </div>
+      )}
+
+      {/* Sidebar */}
       <div
         style={{
           position: 'fixed',
           top: 0,
-          right: aberto ? 0 : '-400px',
-          width: '380px',
+          right: sidebarAberto ? 0 : '-100%',
+          width: 420,
           maxWidth: '100vw',
           height: '100vh',
-          background: COLORS.white,
-          boxShadow: '-4px 0 24px rgba(0,0,0,0.15)',
           zIndex: 9999,
+          background: 'white',
+          boxShadow: animatingOut
+            ? '-4px 0 24px rgba(45, 27, 14, 0.08)'
+            : '-4px 0 24px rgba(45, 27, 14, 0.15)',
           display: 'flex',
           flexDirection: 'column',
-          transition: 'right 0.35s ease',
+          transition: 'right 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
           fontFamily: SANS,
         }}
       >
@@ -294,7 +282,8 @@ export default function CarrinhoSidebar() {
             justifyContent: 'space-between',
             alignItems: 'center',
             padding: '20px 24px',
-            borderBottom: '1px solid ' + COLORS.border,
+            borderBottom: '1px solid var(--color-brand-border-light)',
+            flexShrink: 0,
           }}
         >
           <h2
@@ -302,339 +291,426 @@ export default function CarrinhoSidebar() {
               margin: 0,
               fontSize: '20px',
               fontWeight: 700,
-              color: COLORS.dark,
+              color: 'var(--color-brand-dark)',
               fontFamily: SERIF,
+              letterSpacing: '0.2px',
             }}
           >
-            Sacola{totalItens > 0 ? ' (' + totalItens + ')' : ''}
+            Sacola{totalItens > 0 ? ` (${totalItens})` : ''}
           </h2>
           <button
             onClick={handleFechar}
             style={{
               background: 'none',
               border: 'none',
-              fontSize: '24px',
-              color: COLORS.textSecondary,
               cursor: 'pointer',
-              padding: '4px',
+              padding: 8,
+              borderRadius: 8,
+              color: 'var(--color-brand-text-secondary)',
+              transition: 'all 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'var(--color-brand-bg-soft)'
+              e.currentTarget.style.color = 'var(--color-brand-dark)'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'transparent'
+              e.currentTarget.style.color = 'var(--color-brand-text-secondary)'
             }}
           >
-            x
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
           </button>
         </div>
 
-        {/* Itens */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '16px 24px' }}>
+        {/* Content */}
+        <div
+          style={{
+            flex: 1,
+            overflowY: 'auto',
+            padding: '16px 24px',
+          }}
+        >
           {itens.length === 0 ? (
-            <p
+            <div
               style={{
-                textAlign: 'center',
-                color: COLORS.textSecondary,
-                fontSize: '14px',
-                marginTop: '40px',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '60px 0',
+                color: 'var(--color-brand-text-secondary)',
               }}
             >
-              Sua sacola esta vazia
-            </p>
-          ) : (
-            itens.map((item, index) => (
-              <div
-                key={item.product_id || index}
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  padding: '12px 0',
-                  borderBottom: index < itens.length - 1 ? '1px solid ' + COLORS.border : 'none',
-                }}
-              >
-                <div style={{ flex: 1 }}>
-                  <p
-                    style={{
-                      margin: '0 0 4px 0',
-                      fontSize: '14px',
-                      fontWeight: 600,
-                      color: COLORS.dark,
-                    }}
-                  >
-                    {item.nome}
-                  </p>
-                  <p style={{ margin: 0, fontSize: '13px', color: COLORS.textSecondary }}>
-                    {formatarPreco(item.preco)}
-                  </p>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '12px' }}>
-                  <button
-                    onClick={() => handleDecrementar(item)}
-                    style={{
-                      width: '28px',
-                      height: '28px',
-                      borderRadius: '50%',
-                      border: '1px solid ' + COLORS.border,
-                      background: COLORS.white,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '14px',
-                      fontWeight: 600,
-                      color: COLORS.dark,
-                    }}
-                  >
-                    -
-                  </button>
-                  <span style={{ fontSize: '14px', fontWeight: 600, minWidth: '20px', textAlign: 'center' }}>
-                    {item.quantidade}
-                  </span>
-                  <button
-                    onClick={() => handleIncrementar(item)}
-                    style={{
-                      width: '28px',
-                      height: '28px',
-                      borderRadius: '50%',
-                      border: '1px solid ' + COLORS.border,
-                      background: COLORS.white,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '14px',
-                      fontWeight: 600,
-                      color: COLORS.dark,
-                    }}
-                  >
-                    +
-                  </button>
-                </div>
-
-                <span
-                  style={{
-                    fontSize: '14px',
-                    fontWeight: 700,
-                    color: COLORS.gold,
-                    marginLeft: '12px',
-                    minWidth: '70px',
-                    textAlign: 'right',
-                  }}
-                >
-                  {formatarPreco(item.preco * item.quantidade)}
-                </span>
-              </div>
-            ))
-          )}
-        </div>
-
-        {/* Footer com totais e acoes */}
-        {itens.length > 0 && (
-          <div
-            style={{
-              borderTop: '1px solid ' + COLORS.border,
-              padding: '20px 24px',
-            }}
-          >
-            {/* Frete */}
-            <div style={{ marginBottom: '16px' }}>
-              <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-                <input
-                  type="text"
-                  value={cep}
-                  onChange={(e) => handleCepChange(e.target.value)}
-                  placeholder="CEP para entrega"
-                  maxLength={9}
-                  style={{
-                    flex: 1,
-                    padding: '10px 14px',
-                    borderRadius: '8px',
-                    border: '1px solid ' + COLORS.border,
-                    fontSize: '14px',
-                    fontFamily: SANS,
-                    color: COLORS.dark,
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                  }}
-                />
-                <button
-                  onClick={() => handleBuscarFrete()}
-                  disabled={freteCarregando}
-                  style={{
-                    padding: '10px 16px',
-                    borderRadius: '8px',
-                    border: 'none',
-                    background: COLORS.gold,
-                    color: COLORS.white,
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    fontFamily: SANS,
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {freteCarregando ? '...' : 'Calcular'}
-                </button>
-              </div>
-              {freteCarregando && (
-                <p style={{ margin: '4px 0', fontSize: '12px', color: COLORS.textSecondary }}>
-                  Calculando frete...
-                </p>
-              )}
-              {freteErro && (
-                <p style={{ margin: '4px 0', fontSize: '12px', color: '#D32F2F' }}>{freteErro}</p>
-              )}
-              {freteData && (
-                <div style={{ padding: '8px 12px', background: COLORS.bg, borderRadius: '8px', marginTop: '4px' }}>
-                  <p style={{ margin: 0, fontSize: '13px', color: COLORS.dark }}>{freteData.endereco}</p>
-                  {freteData.bairro && (
-                    <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: COLORS.textSecondary }}>
-                      Bairro: {freteData.bairro}
-                    </p>
-                  )}
-                  <p style={{ margin: '2px 0 0 0', fontSize: '13px', fontWeight: 600, color: COLORS.gold }}>
-                    Frete: {formatarPreco(freteData.valor_frete)}
-                    {freteData.distancia_km && ` (${freteData.distancia_km} km)`}
-                  </p>
-                </div>
-              )}
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--color-brand-border)" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="9" cy="21" r="1" />
+                <circle cx="20" cy="21" r="1" />
+                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+              </svg>
+              <p style={{ marginTop: 16, fontFamily: SERIF, fontSize: 18, color: 'var(--color-brand-text)', fontWeight: 600 }}>
+                Sua sacola esta vazia
+              </p>
+              <p style={{ marginTop: 4, fontSize: 14, color: 'var(--color-brand-text-secondary)' }}>
+                Adicione produtos do cardapio
+              </p>
             </div>
+          ) : (
+            <>
+              {/* Items */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
+                {itens.map((item, index) => (
+                  <div
+                    key={item.product_id || index}
+                    style={{
+                      display: 'flex',
+                      gap: 12,
+                      padding: '12px 0',
+                      borderBottom: index < itens.length - 1 ? '1px solid var(--color-brand-border-light)' : 'none',
+                      animation: 'fadeIn 0.3s ease forwards',
+                    }}
+                  >
+                    {/* Qty control */}
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: 4,
+                        minWidth: 36,
+                      }}
+                    >
+                      <button
+                        onClick={() => adicionarItem(item)}
+                        style={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: '50%',
+                          border: '1px solid var(--color-brand-border)',
+                          background: 'transparent',
+                          color: 'var(--color-brand-text)',
+                          fontSize: 16,
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          lineHeight: 1,
+                          transition: 'all 0.2s',
+                          padding: 0,
+                        }}
+                        onMouseEnter={e => {
+                          e.currentTarget.style.borderColor = 'var(--color-brand-gold)'
+                          e.currentTarget.style.color = 'var(--color-brand-gold)'
+                        }}
+                        onMouseLeave={e => {
+                          e.currentTarget.style.borderColor = 'var(--color-brand-border)'
+                          e.currentTarget.style.color = 'var(--color-brand-text)'
+                        }}
+                      >
+                        +
+                      </button>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-brand-dark)' }}>
+                        {item.quantidade}
+                      </span>
+                      <button
+                        onClick={() => removerItem(item.product_id)}
+                        style={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: '50%',
+                          border: '1px solid var(--color-brand-border)',
+                          background: 'transparent',
+                          color: 'var(--color-brand-text)',
+                          fontSize: 16,
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          lineHeight: 1,
+                          transition: 'all 0.2s',
+                          padding: 0,
+                        }}
+                        onMouseEnter={e => {
+                          e.currentTarget.style.borderColor = '#EF4444'
+                          e.currentTarget.style.color = '#EF4444'
+                        }}
+                        onMouseLeave={e => {
+                          e.currentTarget.style.borderColor = 'var(--color-brand-border)'
+                          e.currentTarget.style.color = 'var(--color-brand-text)'
+                        }}
+                      >
+                        -
+                      </button>
+                    </div>
 
-            {/* Cupom */}
-            {!cupomData ? (
+                    {/* Info */}
+                    <div style={{ flex: 1, display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                      <div>
+                        <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: 'var(--color-brand-dark)' }}>
+                          {item.nome}
+                        </p>
+                        {item.descricao && (
+                          <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--color-brand-text-secondary)' }}>
+                            {item.descricao}
+                          </p>
+                        )}
+                      </div>
+                      <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--color-brand-gold)', whiteSpace: 'nowrap' }}>
+                        {formatarPreco(item.preco * item.quantidade)}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* CEP */}
               <div style={{ marginBottom: '16px' }}>
-                <p style={{ margin: '0 0 6px 0', fontSize: '13px', fontWeight: 600, color: COLORS.dark }}>
-                  Cupom de desconto
+                <p style={{ margin: '0 0 6px 0', fontSize: '13px', fontWeight: 600, color: 'var(--color-brand-dark)' }}>
+                  Calcular frete
                 </p>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <input
                     type="text"
-                    value={cupomInput}
-                    onChange={(e) => setCupomInput(e.target.value.toUpperCase())}
-                    placeholder="Digite o codigo"
+                    placeholder="00000-000"
+                    value={cep}
+                    onChange={e => setCep(e.target.value.replace(/\D/g, '').slice(0, 8))}
                     style={{
                       flex: 1,
-                      padding: '10px 14px',
-                      borderRadius: '8px',
-                      border: '1px solid ' + COLORS.border,
+                      padding: '10px 12px',
                       fontSize: '14px',
-                      fontFamily: SANS,
-                      color: COLORS.dark,
+                      border: '1px solid var(--color-brand-border)',
+                      borderRadius: '10px',
+                      background: 'white',
+                      color: 'var(--color-brand-text)',
                       outline: 'none',
-                      textTransform: 'uppercase',
-                      boxSizing: 'border-box',
+                      fontFamily: SANS,
+                      transition: 'border-color 0.2s, box-shadow 0.2s',
+                    }}
+                    onFocus={e => {
+                      e.currentTarget.style.borderColor = 'var(--color-brand-gold)'
+                      e.currentTarget.style.boxShadow = '0 0 0 3px rgba(196, 151, 90, 0.15)'
+                    }}
+                    onBlur={e => {
+                      e.currentTarget.style.borderColor = 'var(--color-brand-border)'
+                      e.currentTarget.style.boxShadow = 'none'
                     }}
                   />
                   <button
-                    onClick={handleAplicarCupom}
-                    disabled={cupomCarregando}
+                    onClick={handleCalcularFrete}
+                    disabled={freteCarregando}
                     style={{
-                      padding: '10px 16px',
-                      borderRadius: '8px',
-                      border: 'none',
-                      background: COLORS.gold,
-                      color: COLORS.white,
+                      padding: '10px 18px',
+                      borderRadius: 999,
+                      border: '1px solid var(--color-brand-gold)',
+                      background: freteCarregando ? 'var(--color-brand-bg-soft)' : 'transparent',
+                      color: 'var(--color-brand-gold)',
                       fontSize: '13px',
                       fontWeight: 600,
-                      cursor: 'pointer',
+                      cursor: freteCarregando ? 'not-allowed' : 'pointer',
                       fontFamily: SANS,
+                      transition: 'all 0.25s ease',
+                      whiteSpace: 'nowrap',
+                    }}
+                    onMouseEnter={e => {
+                      if (!freteCarregando) {
+                        e.currentTarget.style.background = 'var(--color-brand-gold)'
+                        e.currentTarget.style.color = 'white'
+                      }
+                    }}
+                    onMouseLeave={e => {
+                      if (!freteCarregando) {
+                        e.currentTarget.style.background = 'transparent'
+                        e.currentTarget.style.color = 'var(--color-brand-gold)'
+                      }
                     }}
                   >
-                    {cupomCarregando ? '...' : 'Aplicar'}
+                    {freteCarregando ? '...' : 'Calcular'}
                   </button>
                 </div>
-                {cupomErro && (
-                  <p style={{ margin: '4px 0', fontSize: '12px', color: '#D32F2F' }}>{cupomErro}</p>
+                {freteData && (
+                  <div style={{
+                    marginTop: 8,
+                    padding: '10px 12px',
+                    background: 'var(--color-brand-bg)',
+                    borderRadius: 8,
+                    fontSize: 13,
+                    color: 'var(--color-brand-text)',
+                    animation: 'fadeIn 0.2s ease',
+                  }}>
+                    <p style={{ margin: 0, fontWeight: 600 }}>Frete: R$ 15,00</p>
+                    <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--color-brand-text-secondary)' }}>
+                      {freteData.endereco} — {freteData.prazo}
+                    </p>
+                  </div>
                 )}
               </div>
-            ) : (
-              <div
-                style={{
-                  padding: '10px 14px',
-                  background: '#E8F5E9',
-                  borderRadius: '8px',
-                  marginBottom: '16px',
+
+              {/* Cupom */}
+              {!cupomData ? (
+                <div style={{ marginBottom: '16px' }}>
+                  <p style={{ margin: '0 0 6px 0', fontSize: '13px', fontWeight: 600, color: 'var(--color-brand-dark)' }}>
+                    Cupom de desconto
+                  </p>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input
+                      type="text"
+                      placeholder="Digite o codigo"
+                      value={cupomInput}
+                      onChange={e => setCupomInput(e.target.value.toUpperCase())}
+                      style={{
+                        flex: 1,
+                        padding: '10px 12px',
+                        fontSize: '14px',
+                        border: '1px solid var(--color-brand-border)',
+                        borderRadius: '10px',
+                        background: 'white',
+                        color: 'var(--color-brand-text)',
+                        outline: 'none',
+                        fontFamily: SANS,
+                        transition: 'border-color 0.2s, box-shadow 0.2s',
+                      }}
+                      onFocus={e => {
+                        e.currentTarget.style.borderColor = 'var(--color-brand-gold)'
+                        e.currentTarget.style.boxShadow = '0 0 0 3px rgba(196, 151, 90, 0.15)'
+                      }}
+                      onBlur={e => {
+                        e.currentTarget.style.borderColor = 'var(--color-brand-border)'
+                        e.currentTarget.style.boxShadow = 'none'
+                      }}
+                    />
+                    <button
+                      onClick={handleAplicarCupom}
+                      disabled={cupomCarregando}
+                      style={{
+                        padding: '10px 18px',
+                        borderRadius: 999,
+                        border: '1px solid var(--color-brand-gold)',
+                        background: cupomCarregando ? 'var(--color-brand-bg-soft)' : 'transparent',
+                        color: 'var(--color-brand-gold)',
+                        fontSize: '13px',
+                        fontWeight: 600,
+                        cursor: cupomCarregando ? 'not-allowed' : 'pointer',
+                        fontFamily: SANS,
+                        transition: 'all 0.25s ease',
+                        whiteSpace: 'nowrap',
+                      }}
+                      onMouseEnter={e => {
+                        if (!cupomCarregando) {
+                          e.currentTarget.style.background = 'var(--color-brand-gold)'
+                          e.currentTarget.style.color = 'white'
+                        }
+                      }}
+                      onMouseLeave={e => {
+                        if (!cupomCarregando) {
+                          e.currentTarget.style.background = 'transparent'
+                          e.currentTarget.style.color = 'var(--color-brand-gold)'
+                        }
+                      }}
+                    >
+                      {cupomCarregando ? '...' : 'Aplicar'}
+                    </button>
+                  </div>
+                  {cupomErro && (
+                    <p style={{
+                      margin: '6px 0 0',
+                      fontSize: '12px',
+                      color: '#EF4444',
+                      background: '#FEF2F2',
+                      padding: '6px 10px',
+                      borderRadius: 6,
+                    }}>
+                      {cupomErro}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div style={{
+                  marginBottom: 16,
+                  padding: '12px 14px',
+                  background: '#F0FDF4',
+                  borderRadius: 10,
+                  border: '1px solid #BBF7D0',
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                }}
-              >
-                <div>
-                  <p style={{ margin: 0, fontSize: '13px', fontWeight: 600, color: '#2E7D32' }}>
-                    Cupom aplicado!
-                  </p>
-                  <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#4CAF50' }}>
-                    {cupomData.codigo} &mdash; {cupomData.descricao}
-                  </p>
+                }}>
+                  <div>
+                    <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#166534' }}>
+                      Cupom {cupomData.codigo}
+                    </p>
+                    <p style={{ margin: '2px 0 0', fontSize: 12, color: '#15803D' }}>
+                      Desconto de {cupomData.tipo === 'percentual' ? `${cupomData.valor}%` : formatarPreco(cupomData.valor)}
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleRemoverCupom}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#DC2626',
+                      cursor: 'pointer',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      fontFamily: SANS,
+                      padding: '4px 8px',
+                      borderRadius: 6,
+                      transition: 'background 0.2s',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#FEE2E2'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    Remover
+                  </button>
                 </div>
-                <button
-                  onClick={handleRemoverCupom}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    fontSize: '12px',
-                    color: '#D32F2F',
-                    cursor: 'pointer',
-                    fontWeight: 600,
-                    textDecoration: 'underline',
-                  }}
-                >
-                  Remover
-                </button>
-              </div>
-            )}
+              )}
+            </>
+          )}
+        </div>
 
-            {/* Totais */}
-            <div style={{ marginBottom: '16px' }}>
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  padding: '4px 0',
-                  fontSize: '14px',
-                  color: COLORS.textSecondary,
-                }}
-              >
+        {/* Footer */}
+        {itens.length > 0 && (
+          <div
+            style={{
+              borderTop: '1px solid var(--color-brand-border-light)',
+              padding: '16px 24px',
+              flexShrink: 0,
+              background: 'var(--color-brand-bg)',
+            }}
+          >
+            {/* Resumo */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: 'var(--color-brand-text-secondary)' }}>
                 <span>Subtotal</span>
                 <span>{formatarPreco(subtotal)}</span>
               </div>
-              {freteData && (
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    padding: '4px 0',
-                    fontSize: '14px',
-                    color: COLORS.textSecondary,
-                  }}
-                >
+              {temFrete && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: 'var(--color-brand-text-secondary)' }}>
                   <span>Frete</span>
                   <span>{formatarPreco(freteData.valor_frete)}</span>
                 </div>
               )}
               {desconto > 0 && (
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    padding: '4px 0',
-                    fontSize: '14px',
-                    color: '#2E7D32',
-                  }}
-                >
-                  <span>Desconto ({cupomData?.codigo})</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: '#16A34A' }}>
+                  <span>Desconto</span>
                   <span>-{formatarPreco(desconto)}</span>
                 </div>
               )}
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  padding: '8px 0 0 0',
-                  fontSize: '16px',
-                  fontWeight: 700,
-                  color: COLORS.dark,
-                  borderTop: '2px solid ' + COLORS.border,
-                  marginTop: '4px',
-                }}
-              >
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                fontSize: 18,
+                fontWeight: 700,
+                color: 'var(--color-brand-dark)',
+                paddingTop: 8,
+                borderTop: '2px solid var(--color-brand-border)',
+                fontFamily: SERIF,
+              }}>
                 <span>Total</span>
                 <span>{formatarPreco(total)}</span>
               </div>
@@ -647,10 +723,10 @@ export default function CarrinhoSidebar() {
               style={{
                 width: '100%',
                 padding: '14px',
-                borderRadius: '999px',
+                borderRadius: 999,
                 border: 'none',
-                background: COLORS.gold,
-                color: COLORS.white,
+                background: 'var(--color-brand-gold)',
+                color: 'white',
                 fontSize: '15px',
                 fontWeight: 700,
                 cursor: finalizando ? 'not-allowed' : 'pointer',
@@ -659,6 +735,22 @@ export default function CarrinhoSidebar() {
                 textTransform: 'uppercase',
                 opacity: finalizando ? 0.7 : 1,
                 marginBottom: '10px',
+                transition: 'all 0.25s ease',
+                boxShadow: finalizando ? 'none' : '0 2px 8px rgba(196, 151, 90, 0.3)',
+              }}
+              onMouseEnter={e => {
+                if (!finalizando) {
+                  e.currentTarget.style.background = 'var(--color-brand-gold-dark, #A67B3E)'
+                  e.currentTarget.style.boxShadow = '0 6px 20px rgba(196, 151, 90, 0.4)'
+                  e.currentTarget.style.transform = 'translateY(-1px)'
+                }
+              }}
+              onMouseLeave={e => {
+                if (!finalizando) {
+                  e.currentTarget.style.background = 'var(--color-brand-gold)'
+                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(196, 151, 90, 0.3)'
+                  e.currentTarget.style.transform = 'none'
+                }
               }}
             >
               {finalizando ? 'Redirecionando...' : 'Finalizar Pedido'}
@@ -670,45 +762,34 @@ export default function CarrinhoSidebar() {
               style={{
                 width: '100%',
                 padding: '10px',
-                borderRadius: '999px',
-                border: '1px solid ' + COLORS.border,
+                borderRadius: 999,
+                border: '1px solid var(--color-brand-border)',
                 background: 'transparent',
-                color: COLORS.textSecondary,
+                color: 'var(--color-brand-text-secondary)',
                 fontSize: '13px',
                 fontWeight: 600,
                 cursor: finalizando ? 'not-allowed' : 'pointer',
                 fontFamily: SANS,
+                transition: 'all 0.25s ease',
+              }}
+              onMouseEnter={e => {
+                if (!finalizando) {
+                  e.currentTarget.style.borderColor = '#EF4444'
+                  e.currentTarget.style.color = '#EF4444'
+                }
+              }}
+              onMouseLeave={e => {
+                if (!finalizando) {
+                  e.currentTarget.style.borderColor = 'var(--color-brand-border)'
+                  e.currentTarget.style.color = 'var(--color-brand-text-secondary)'
+                }
               }}
             >
-              Limpar sacola
+              Limpar Carrinho
             </button>
           </div>
         )}
       </div>
-
-      {/* Toast */}
-      {toast && (
-        <div
-          style={{
-            position: 'fixed',
-            bottom: '24px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            background: COLORS.dark,
-            color: COLORS.textOnDark,
-            padding: '14px 28px',
-            borderRadius: '999px',
-            border: '1px solid ' + COLORS.gold,
-            fontSize: '14px',
-            fontWeight: 600,
-            zIndex: 10000,
-            boxShadow: '0 8px 24px rgba(45,27,14,0.25)',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {toast}
-        </div>
-      )}
     </>
   )
 }
