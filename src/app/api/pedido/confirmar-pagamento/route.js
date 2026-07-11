@@ -67,16 +67,20 @@ export async function GET(request) {
         .eq('id', externalReference)
 
       if (paymentId) {
-        await supabase.from('payments').insert({
-          order_id: externalReference,
-          metodo: 'mercadopago',
-          status: 'approved',
-          valor: null,
-          mercado_pago_id: String(paymentId),
-          mercado_pago_status: 'approved',
-          criado_em: new Date().toISOString(),
-          atualizado_em: new Date().toISOString()
-        }).catch(() => {})
+        try {
+          await supabase.from('payments').insert({
+            order_id: externalReference,
+            metodo: 'mercadopago',
+            status: 'approved',
+            valor: null,
+            mercado_pago_id: String(paymentId),
+            mercado_pago_status: 'approved',
+            criado_em: new Date().toISOString(),
+            atualizado_em: new Date().toISOString()
+          })
+        } catch (_) {
+          // fallback silencioso
+        }
       }
     } catch (e) {
       console.error('Erro no GET confirmar pagamento:', e)
