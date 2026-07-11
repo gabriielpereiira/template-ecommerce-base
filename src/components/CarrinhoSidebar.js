@@ -36,11 +36,30 @@ export default function CarrinhoSidebar() {
   const [finalizando, setFinalizando] = useState(false)
   const [toast, setToast] = useState(null)
 
+  // Campos do cliente
+  const [nomeCliente, setNomeCliente] = useState('')
+  const [telefoneCliente, setTelefoneCliente] = useState('')
+
   useEffect(() => {
     if (!aberto) return
     let active = true
-    async function carregarCepSalvo() {
+    async function carregarDados() {
       try {
+        // Busca nome e telefone da tabela profiles (cadastro)
+        if (usuario) {
+          try {
+            const res = await fetch('/api/perfil?userId=' + usuario.id)
+            const json = await res.json()
+            if (json.success && json.data && active) {
+              if (json.data.nome) setNomeCliente(json.data.nome)
+              if (json.data.telefone) setTelefoneCliente(json.data.telefone)
+            }
+          } catch (e) {
+            // Perfil ainda sem dados, tranquilo
+          }
+        }
+
+        // Carrega CEP salvo
         const saved = localStorage.getItem('cep_entrega')
         if (saved && active) {
           const digits = String(saved).replace(/\D/g, '').slice(0, 8)
@@ -49,7 +68,7 @@ export default function CarrinhoSidebar() {
         }
       } catch (e) {}
     }
-    carregarCepSalvo()
+    carregarDados()
     return () => { active = false }
   }, [aberto, usuario])
 
@@ -63,6 +82,13 @@ export default function CarrinhoSidebar() {
     const d = String(digits).replace(/\D/g, '').slice(0, 8)
     if (d.length <= 5) return d
     return d.slice(0, 5) + '-' + d.slice(5)
+  }
+
+  function formatarTelefone(valor) {
+    const d = String(valor).replace(/\D/g, '').slice(0, 11)
+    if (d.length <= 2) return d
+    if (d.length <= 7) return `(${d.slice(0, 2)}) ${d.slice(2)}`
+    return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`
   }
 
   function handleFechar() { setAberto(false) }
@@ -140,6 +166,8 @@ export default function CarrinhoSidebar() {
   function handleFinalizar() {
     if (!usuario) { setToast('Faca login para finalizar o pedido'); return }
     if (itens.length === 0) { setToast('Sua sacola esta vazia'); return }
+    if (!nomeCliente.trim()) { setToast('Informe seu nome para finalizar'); return }
+    if (!telefoneCliente.trim()) { setToast('Informe seu telefone para finalizar'); return }
     if (!freteData) {
       setFreteExigido(true)
       setToast('Informe o CEP para calcular o frete')
@@ -149,11 +177,14 @@ export default function CarrinhoSidebar() {
     setFinalizando(true)
     ;(async () => {
       try {
+        const nome = nomeCliente.trim()
+        const telefone = telefoneCliente.replace(/\D/g, '')
+
         const orderPayload = {
           user_id: usuario.id,
-          nome_cliente: usuario?.user_metadata?.full_name || usuario?.email?.split('@')[0] || '',
+          nome_cliente: nome,
           email_cliente: usuario?.email || '',
-          telefone_cliente: usuario?.user_metadata?.phone || '',
+          telefone_cliente: telefone,
           itens: itens.map(i => ({
             product_id: i.product_id, nome: i.nome, descricao: i.descricao || '',
             quantidade: i.quantidade, preco: i.preco,
@@ -181,9 +212,9 @@ export default function CarrinhoSidebar() {
         const pedido_id = saveResult.data.pedido_id
         const payload = {
           itens: itens.map(i => ({ id: i.product_id, nome: i.nome, descricao: i.descricao || '', quantidade: i.quantidade, preco: i.preco })),
-          cliente_nome: usuario?.user_metadata?.full_name || usuario?.email?.split('@')[0] || '',
+          cliente_nome: nome,
           cliente_email: usuario?.email || '',
-          cliente_telefone: usuario?.user_metadata?.phone || '',
+          cliente_telefone: telefone,
           endereco_entrega: freteData.endereco || '',
           valor_frete: freteData.valor_frete || 0,
           cupom: cupomData ? { codigo: cupomData.codigo, tipo: cupomData.tipo, valor: cupomData.valor } : null,
@@ -246,7 +277,7 @@ export default function CarrinhoSidebar() {
           </button>
         </div>
 
-        {/* Itens */}
+        {/* Conteudo - Itens */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
           {itens.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px 0', color: COLORS.textSecondary }}>
@@ -277,9 +308,38 @@ export default function CarrinhoSidebar() {
           )}
         </div>
 
-        {/* Footer */}
+        {/* Footer - Formulario */}
         <div style={{ borderTop: '1px solid ' + COLORS.border, padding: '20px 24px' }}>
-          {/* Frete */}
+          {/* Seus dados - sempre visivel */}
+          <div style={{ marginBottom: '16px' }}>
+            <p style={{ margin: '0 0 8px', fontSize: '13px', fontWeight: 600, color: COLORS.dark }}>
+              Seus dados
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <input type="text" value={nomeCliente}
+                onChange={(e) => setNomeCliente(e.target.value)}
+                placeholder="Seu nome completo" maxLength={60}
+                style={{
+                  width: '100%', padding: '10px 14px', borderRadius: '8px',
+                  border: '1px solid ' + COLORS.border, fontSize: '14px',
+                  fontFamily: SANS, color: COLORS.dark, outline: 'none',
+                  boxSizing: 'border-box',
+                }}
+              />
+              <input type="text" value={telefoneCliente}
+                onChange={(e) => setTelefoneCliente(formatarTelefone(e.target.value))}
+                placeholder="(53) 99999-9999" maxLength={16}
+                style={{
+                  width: '100%', padding: '10px 14px', borderRadius: '8px',
+                  border: '1px solid ' + COLORS.border, fontSize: '14px',
+                  fontFamily: SANS, color: COLORS.dark, outline: 'none',
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
+          </div>
+
+          {/* CEP / Frete */}
           <div style={{ marginBottom: '16px' }}>
             <p style={{ margin: '0 0 4px', fontSize: '13px', fontWeight: 600, color: COLORS.dark }}>
               CEP para entrega
