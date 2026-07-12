@@ -40,7 +40,7 @@ export default function Header() {
   const userInitial = usuario?.email?.charAt(0)?.toUpperCase() || '?'
 
   const navLinks = [
-    { href: '/cardapio', label: 'Cardapio', icon: 'c' },
+    { href: '/cardápio', label: 'Cardápio', icon: 'c' },
     ...(usuario ? [{ href: '/pedidos', label: 'Meus Pedidos', icon: 'p' }] : []),
     ...(isAdmin ? [{ href: '/admin/pedidos', label: 'Admin', icon: 'a' }] : []),
   ]
@@ -237,7 +237,7 @@ export default function Header() {
 
           {usuario ? (
             <>
-              <button style={styles.avatar} onClick={() => router.push('/pedidos')} title={usuario.email}>
+              <button style={styles.avatar} onClick={() => router.push('/perfil')} title={usuario.email}>
                 {userInitial}
               </button>
               <button
