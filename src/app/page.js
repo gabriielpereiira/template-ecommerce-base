@@ -1,11 +1,11 @@
 'use client'
-
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useCarrinho } from './context/CarrinhoContext'
 import { useAuth } from './context/AuthContext'
 import { supabase } from '@/lib/supabaseClient'
 import Header from '../components/Header'
+import DividerAnimado from '../components/DividerAnimado'
 
 const COLORS = {
   dark: '#2D1B0E',
@@ -20,16 +20,19 @@ const COLORS = {
 const SERIF = 'Georgia, "Times New Roman", serif'
 const SANS = 'Inter, Arial, sans-serif'
 
+function formatarPreco(valor) {
+  if (valor == null) return 'R$ 0,00'
+  return `R$ ${Number(valor).toFixed(2).replace('.', ',')}`
+}
+
 export default function HomePage() {
   const router = useRouter()
   const { adicionarItem } = useCarrinho()
-
   const [produtos, setProdutos] = useState([])
   const [carregando, setCarregando] = useState(true)
   const [hoveredCard, setHoveredCard] = useState(null)
   const [hoveredBottomCta, setHoveredBottomCta] = useState(false)
   const [feedback, setFeedback] = useState('')
-
   const produtosRef = useRef(null)
   const sobreRef = useRef(null)
   const cardRefs = useRef([])
@@ -37,13 +40,10 @@ export default function HomePage() {
   /* ANIMACAO DOS CARDS: observa CADA CARD individualmente e alterna a classe visible */
   useEffect(() => {
     if (!produtos.length) return
-
     const observers = []
-
     produtos.forEach((_, index) => {
       const card = cardRefs.current[index]
       if (!card) return
-
       const observer = new IntersectionObserver(
         (entries) => {
           entries.forEach((entry) => {
@@ -56,11 +56,9 @@ export default function HomePage() {
         },
         { threshold: 0.15 }
       )
-
       observer.observe(card)
       observers.push(observer)
     })
-
     return () => {
       observers.forEach((o) => o.disconnect())
     }
@@ -70,7 +68,6 @@ export default function HomePage() {
   useEffect(() => {
     const section = sobreRef.current
     if (!section) return
-
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -83,9 +80,7 @@ export default function HomePage() {
       },
       { threshold: 0.2 }
     )
-
     observer.observe(section)
-
     return () => {
       observer.disconnect()
     }
@@ -128,58 +123,47 @@ export default function HomePage() {
 
   return (
     <div style={{ margin: 0, padding: 0, fontFamily: SANS, background: COLORS.bg, color: COLORS.dark, minHeight: '100vh', overflowX: 'hidden' }}>
-
       <Header />
-
       <style>{`
         @keyframes fadeUp {
           from { opacity: 0; transform: translateY(30px); }
           to { opacity: 1; transform: translateY(0); }
         }
-
         .hero-title {
           opacity: 0;
           animation: fadeUp 0.8s ease forwards;
           animation-delay: 0.2s;
         }
-
         .hero-text {
           opacity: 0;
           animation: fadeUp 0.8s ease forwards;
           animation-delay: 0.5s;
         }
-
         .hero-btn {
           opacity: 0;
           animation: fadeUp 0.8s ease forwards;
           animation-delay: 0.8s;
         }
-
         .product-card {
           opacity: 0;
           transform: translateY(40px);
           transition: opacity 0.6s ease, transform 0.6s ease, box-shadow 0.25s ease, border-color 0.25s ease;
         }
-
         .product-card.visible {
           opacity: 1;
           transform: translateY(0);
         }
-
         .product-card:hover {
           border-color: ${COLORS.gold} !important;
         }
-
         .product-card:hover img {
           transform: scale(1.08);
         }
-
         .sobre-section {
           opacity: 0;
           transform: translateY(30px);
           transition: opacity 0.8s ease, transform 0.8s ease;
         }
-
         .sobre-section.visible {
           opacity: 1;
           transform: translateY(0);
@@ -236,6 +220,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* DIVIDER ANIMADO ENTRE HERO E CARDAPIO */}
+      <DividerAnimado />
 
       {/* PRODUTOS EM DESTAQUE */}
       <section ref={produtosRef} style={{ padding: '80px 24px', maxWidth: '1200px', margin: '0 auto' }}>
@@ -298,7 +285,6 @@ export default function HomePage() {
                     Foto em breve
                   </div>
                 )}
-
                 <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', flex: 1 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px', gap: '12px' }}>
                     <h3 style={{ fontFamily: SERIF, fontSize: '20px', color: COLORS.dark, margin: 0, fontWeight: 700 }}>
@@ -323,7 +309,7 @@ export default function HomePage() {
 
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto' }}>
                     <span style={{ fontFamily: SERIF, fontSize: '22px', color: COLORS.dark, fontWeight: 700 }}>
-                      R$ {Number(produto.preco).toFixed(2)}
+                      {formatarPreco(produto.preco)}
                     </span>
                     <button
                       onClick={() => handleAdicionar(produto)}

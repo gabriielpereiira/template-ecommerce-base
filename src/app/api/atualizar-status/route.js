@@ -1,70 +1,60 @@
 import { createClient } from '@supabase/supabase-js'
+import { Resend } from 'resend'
+import { emailSaiuEntrega } from '@/lib/emailSaiuEntrega'
 
 export async function POST(request) {
   try {
-    const body = await request.json()
-    const { pedido_id, payment_id, status_pagamento, metodo_pagamento } = body
-
-    if (!pedido_id) {
-      return Response.json({ success: false, erro: 'ID do pedido obrigatorio' }, { status: 400 })
+    const { pedidoId, novoStatus } = await request.json()
+    if (!pedidoId || !novoStatus) {
+      return Response.json({ error: 'pedidoId e novoStatus obrigatorios' }, { status: 400 })
     }
-
-    let orderStatus = 'pendente'
-    if (status_pagamento === 'approved') orderStatus = 'confirmado'
-    else if (status_pagamento === 'rejected' || status_pagamento === 'refused') orderStatus = 'cancelado'
-    else if (status_pagamento === 'cancelled') orderStatus = 'cancelado'
-    else if (status_pagamento === 'refunded') orderStatus = 'cancelado'
-    else if (status_pagamento === 'pending' || status_pagamento === 'in_process') orderStatus = 'pendente'
 
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL,
       process.env.SUPABASE_SERVICE_ROLE_KEY
     )
 
+    // Busca dados do pedido ANTES de atualizar (precisa do email do cliente)
+    const { data: pedido } = await supabase
+      .from('pedidos')
+      .select('nome_cliente, email_cliente')
+      .eq('id', pedidoId)
+      .single()
+
+    // Atualiza o status do pedido
     await supabase
       .from('pedidos')
       .update({
-        status: orderStatus,
-        pagamento_status: status_pagamento,
-        metodo_pagamento: metodo_pagamento || null,
+        status: novoStatus,
         atualizado_em: new Date().toISOString()
       })
-      .eq('id', pedido_id)
+      .eq('id', pedidoId)
 
-    if (payment_id) {
-      const { data: existingPayment } = await supabase
-        .from('payments')
-        .select('id')
-        .eq('mercado_pago_id', String(payment_id))
-        .single()
+    // Se for "saiu_entrega", dispara email
+    if (novoStatus === 'saiu_entrega') {
+      try {
+        const resend = new Resend(process.env.RESEND_API_KEY)
 
-      if (existingPayment) {
-        await supabase
-          .from('payments')
-          .update({
-            status: status_pagamento,
-            mercado_pago_status: status_pagamento,
-            atualizado_em: new Date().toISOString()
+        if (pedido?.email_cliente) {
+          const result = await resend.emails.send({
+            from: 'Tortas da Lika <onboarding@resend.dev>',
+            to: pedido.email_cliente,
+            subject: 'Seu pedido saiu para entrega - Tortas da Lika',
+            html: emailSaiuEntrega({
+              nomeCliente: pedido.nome_cliente || pedido.email_cliente.split('@')[0],
+              pedidoId
+            })
           })
-          .eq('id', existingPayment.id)
-      } else {
-        await supabase
-          .from('payments')
-          .insert({
-            order_id: pedido_id,
-            metodo: metodo_pagamento || 'mercadopago',
-            status: status_pagamento,
-            valor: null,
-            mercado_pago_id: String(payment_id),
-            mercado_pago_status: status_pagamento,
-            criado_em: new Date().toISOString(),
-            atualizado_em: new Date().toISOString()
-          })
+          console.log('Email saiu_entrega enviado:', result)
+        }
+      } catch (emailError) {
+        console.error('Erro ao enviar email de saiu_entrega:', emailError)
       }
     }
 
-    return Response.json({ success: true })
+    return Response.json({ success: true, status: novoStatus })
   } catch (error) {
-    return Response.json({ success: false, erro: error.message }, { status: 500 })
+    console.error('Erro ao atualizar status:', error)
+    return Response.json({ error: error.message }, { status: 500 })
   }
 }

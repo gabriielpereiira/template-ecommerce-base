@@ -32,7 +32,7 @@ export default function HeaderCliente() {
           color: 'var(--color-brand-dark)',
           textDecoration: 'none',
           letterSpacing: '0.3px',
-          fontFamily: 'Georgia, "Times New Roman", serif',
+          fontFamily: '"Playfair Display", Georgia, serif',
           transition: 'opacity 0.2s',
         }}
         onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
@@ -47,6 +47,7 @@ export default function HeaderCliente() {
             textDecoration: 'none',
             fontSize: '0.95rem',
             fontWeight: 500,
+            fontFamily: '"Plus Jakarta Sans", sans-serif',
             transition: 'color 0.2s',
           }}
           onMouseEnter={e => e.currentTarget.style.color = 'var(--color-brand-gold)'}
@@ -63,6 +64,7 @@ export default function HeaderCliente() {
                 textDecoration: 'none',
                 fontSize: '0.95rem',
                 fontWeight: 500,
+                fontFamily: '"Plus Jakarta Sans", sans-serif',
                 transition: 'color 0.2s',
               }}
               onMouseEnter={e => e.currentTarget.style.color = 'var(--color-brand-gold)'}
@@ -74,6 +76,7 @@ export default function HeaderCliente() {
                 textDecoration: 'none',
                 fontSize: '0.95rem',
                 fontWeight: 500,
+                fontFamily: '"Plus Jakarta Sans", sans-serif',
                 transition: 'color 0.2s',
               }}
               onMouseEnter={e => e.currentTarget.style.color = 'var(--color-brand-gold)'}
@@ -93,6 +96,7 @@ export default function HeaderCliente() {
                 fontSize: '13px',
                 fontWeight: 700,
                 color: 'white',
+                fontFamily: '"Plus Jakarta Sans", sans-serif',
               }}>
                 {primeiroNome.charAt(0).toUpperCase()}
               </div>
@@ -101,6 +105,7 @@ export default function HeaderCliente() {
                 color: 'var(--color-brand-dark-light)',
                 fontSize: '0.9rem',
                 fontWeight: 600,
+                fontFamily: '"Plus Jakarta Sans", sans-serif',
               }}>
                 {primeiroNome}
               </span>
@@ -108,6 +113,7 @@ export default function HeaderCliente() {
               <button
                 type="button"
                 onClick={logout}
+                className="btn btn-ghost"
                 style={{
                   background: 'transparent',
                   border: '1px solid var(--color-brand-border)',
@@ -117,16 +123,8 @@ export default function HeaderCliente() {
                   fontSize: '0.85rem',
                   fontWeight: 600,
                   cursor: 'pointer',
-                  fontFamily: 'inherit',
+                  fontFamily: '"Plus Jakarta Sans", sans-serif',
                   transition: 'all 0.25s ease',
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.borderColor = '#EF4444'
-                  e.currentTarget.style.color = '#EF4444'
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.borderColor = 'var(--color-brand-border)'
-                  e.currentTarget.style.color = 'var(--color-brand-text-secondary)'
                 }}
               >
                 Sair
@@ -138,6 +136,7 @@ export default function HeaderCliente() {
               textDecoration: 'none',
               fontSize: '0.95rem',
               fontWeight: 500,
+              fontFamily: '"Plus Jakarta Sans", sans-serif',
               transition: 'color 0.2s',
             }}
             onMouseEnter={e => e.currentTarget.style.color = 'var(--color-brand-gold)'}

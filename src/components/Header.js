@@ -6,273 +6,243 @@ import { useCarrinho } from '../app/context/CarrinhoContext'
 import { useAuth } from '../app/context/AuthContext'
 import { storeConfig } from '@/config/store'
 
+const SANS = '"Plus Jakarta Sans", sans-serif'
+const SERIF = '"Playfair Display", Georgia, serif'
+
 export default function Header() {
   const router = useRouter()
   const pathname = usePathname()
   const { totalItens, setAberto } = useCarrinho()
   const { usuario, logout } = useAuth()
   const emailsAdmin = storeConfig.admin.adminEmails
-  const isAdmin = usuario && emailsAdmin.includes(usuario.email)
+
+  const [scrolled, setScrolled] = useState(false)
+  const [loaded, setLoaded] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
-  const [menuAberto, setMenuAberto] = useState(false)
 
   useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768)
+    setLoaded(true)
+    const check = () => setIsMobile(window.innerWidth <= 768)
     check()
     window.addEventListener('resize', check)
     return () => window.removeEventListener('resize', check)
   }, [])
 
-  const isActive = (href) => {
-    if (href === '/') return pathname === '/'
-    return pathname.startsWith(href)
-  }
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 20)
+    window.addEventListener('scroll', onScroll)
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
+  const isAdmin = usuario && emailsAdmin.includes(usuario.email)
+  const userInitial = usuario?.email?.charAt(0)?.toUpperCase() || '?'
 
   const navLinks = [
-    { href: '/cardapio', label: 'Cardapio' },
-    { href: '/pedidos', label: 'Meus Pedidos' },
+    { href: '/cardapio', label: 'Cardapio', icon: 'c' },
+    ...(usuario ? [{ href: '/pedidos', label: 'Meus Pedidos', icon: 'p' }] : []),
+    ...(isAdmin ? [{ href: '/admin/pedidos', label: 'Admin', icon: 'a' }] : []),
   ]
 
-  if (isAdmin) {
-    navLinks.push({
-      href: '/admin/pedidos',
-      label: 'Admin',
-      icon: (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="3" />
-          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-        </svg>
-      ),
-    })
-  }
-
-  const handleCarrinho = () => setAberto(true)
-
-  const getInitial = () => {
-    if (usuario && usuario.email) return usuario.email.charAt(0).toUpperCase()
-    return '?'
+  const styles = {
+    wrapper: {
+      opacity: loaded ? 1 : 0,
+      transition: 'opacity 0.4s ease, box-shadow 0.3s ease',
+      position: 'sticky',
+      top: 0,
+      zIndex: 1000,
+      height: isMobile ? '60px' : '72px',
+      backgroundColor: '#FFFFFF',
+      borderBottom: '1px solid rgba(196,151,90,0.15)',
+      boxShadow: scrolled ? '0 2px 12px rgba(45,27,14,0.08)' : 'none',
+    },
+    inner: {
+      maxWidth: '1200px',
+      margin: '0 auto',
+      height: '100%',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: '0 20px',
+    },
+    leftSection: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 12,
+      flexShrink: 0,
+    },
+    centerNav: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      flex: 1,
+      justifyContent: 'center',
+    },
+    rightSection: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      flexShrink: 0,
+    },
+    link: (active) => ({
+      display: 'flex',
+      alignItems: 'center',
+      gap: 6,
+      padding: '8px 14px',
+      borderRadius: 999,
+      background: active ? 'rgba(196,151,90,0.12)' : 'transparent',
+      color: active ? '#2D1B0E' : '#7A6A5A',
+      fontSize: 14,
+      fontWeight: active ? 600 : 500,
+      fontFamily: SANS,
+      textDecoration: 'none',
+      cursor: 'pointer',
+      border: 'none',
+      transition: 'all 0.2s ease',
+    }),
+    sacolaBtn: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 6,
+      padding: '8px 16px',
+      borderRadius: 999,
+      border: '1.5px solid #C4975A',
+      background: 'transparent',
+      color: '#2D1B0E',
+      fontSize: 14,
+      fontWeight: 600,
+      fontFamily: SANS,
+      cursor: 'pointer',
+      transition: 'all 0.2s ease',
+    },
+    avatar: {
+      width: 34,
+      height: 34,
+      borderRadius: '50%',
+      background: 'linear-gradient(135deg, #2D1B0E, #4A2F1A)',
+      color: '#C4975A',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: 14,
+      fontWeight: 700,
+      fontFamily: SANS,
+      cursor: 'pointer',
+      border: 'none',
+    },
+    logoutBtn: {
+      padding: '6px 12px',
+      borderRadius: 999,
+      border: '1px solid #E8DDD0',
+      background: 'transparent',
+      color: '#7A6A5A',
+      fontSize: 13,
+      fontFamily: SANS,
+      cursor: 'pointer',
+      transition: 'all 0.2s',
+    },
   }
 
   return (
-    <header style={{
-      position: 'sticky',
-      top: 0,
-      zIndex: 100,
-      width: '100%',
-      background: 'var(--color-brand-bg)',
-      borderBottom: '1px solid var(--color-brand-border-light)',
-      boxShadow: '0 1px 4px rgba(45, 27, 14, 0.04)',
-      backdropFilter: 'blur(8px)',
-      WebkitBackdropFilter: 'blur(8px)',
-    }}>
-      <div style={{
-        maxWidth: 1200,
-        margin: '0 auto',
-        padding: '0 24px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        height: 64,
-      }}>
-        {/* Logo */}
-        <Link href="/" style={{
-          fontSize: '1.25rem',
-          fontWeight: 700,
-          color: 'var(--color-brand-dark)',
-          textDecoration: 'none',
-          fontFamily: '"Playfair Display", Georgia, serif',
-          letterSpacing: '0.3px',
-          transition: 'opacity 0.2s',
-        }}
-        onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
-        onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-        >
-          Tortas da Lika
-        </Link>
-
-        {!isMobile && (
-          <nav style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            {navLinks.map((link) => {
-              const active = isActive(link.href)
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    padding: '8px 16px',
-                    borderRadius: 999,
-                    color: active ? 'var(--color-brand-gold)' : 'var(--color-brand-dark-light)',
-                    background: active ? 'rgba(196, 151, 90, 0.1)' : 'transparent',
-                    fontSize: '14px',
-                    fontWeight: active ? 600 : 500,
-                    textDecoration: 'none',
-                    transition: 'all 0.25s ease',
-                    fontFamily: '"Plus Jakarta Sans", sans-serif',
-                  }}
-                  onMouseEnter={e => {
-                    if (!active) {
-                      e.currentTarget.style.background = 'rgba(196, 151, 90, 0.06)'
-                      e.currentTarget.style.color = 'var(--color-brand-gold)'
-                    }
-                  }}
-                  onMouseLeave={e => {
-                    if (!active) {
-                      e.currentTarget.style.background = 'transparent'
-                      e.currentTarget.style.color = 'var(--color-brand-dark-light)'
-                    }
-                  }}
-                >
-                  {link.icon && link.icon}
-                  {link.label}
-                  {active && (
-                    <span style={{
-                      width: 4,
-                      height: 4,
-                      borderRadius: '50%',
-                      background: 'var(--color-brand-gold)',
-                      display: 'inline-block',
-                    }} />
-                  )}
-                </Link>
-              )
-            })}
-          </nav>
-        )}
-
-        {/* Direita */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          {usuario && isMobile && (
-            <Link href="/pedidos" style={{
-              color: 'var(--color-brand-text-secondary)',
-              fontSize: 13,
-              textDecoration: 'none',
-              fontWeight: 500,
-              fontFamily: '"Plus Jakarta Sans", sans-serif',
-            }}>
-              Pedidos
-            </Link>
-          )}
-
-          {/* Botao Sacolinha */}
-          <button
-            onClick={handleCarrinho}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 8,
-              padding: '8px 20px',
-              borderRadius: 999,
-              border: '1.5px solid var(--color-brand-gold)',
-              color: 'var(--color-brand-gold)',
-              background: 'transparent',
-              fontSize: '13px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              fontFamily: '"Plus Jakarta Sans", sans-serif',
-              transition: 'all 0.25s ease',
-              textDecoration: 'none',
-              letterSpacing: '0.3px',
-              textTransform: 'uppercase',
+    <header style={styles.wrapper}>
+      <div style={styles.inner}>
+        {/* ESQUERDA - Logo */}
+        <div style={styles.leftSection}>
+          <Link href="/" style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            textDecoration: 'none',
+            transition: 'opacity 0.3s ease, transform 0.3s ease',
+          }}
+            onMouseEnter={e => {
+              e.currentTarget.style.opacity = '0.85'
+              e.currentTarget.style.transform = 'scale(1.02)'
             }}
+            onMouseLeave={e => {
+              e.currentTarget.style.opacity = '1'
+              e.currentTarget.style.transform = 'scale(1)'
+            }}
+          >
+            <img
+              src="/images/logo-header.png"
+              alt="Tortas da Lika"
+              style={{
+                height: isMobile ? 32 : 40,
+                width: 'auto',
+                display: 'block',
+                transition: 'transform 0.3s ease',
+              }}
+              className="logo-icon"
+              onMouseEnter={e => {
+                e.currentTarget.style.transform = 'rotate(-3deg)'
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.transform = 'rotate(0deg)'
+              }}
+            />
+          </Link>
+        </div>
+
+        {/* CENTRO - Nav */}
+        <nav style={isMobile ? { display: 'none' } : styles.centerNav}>
+          {navLinks.map(link => (
+            <Link
+              key={link.href}
+              href={link.href}
+              style={styles.link(pathname === link.href || pathname.startsWith(link.href + '/'))}
+              onMouseEnter={e => { if (pathname !== link.href) e.currentTarget.style.background = 'rgba(196,151,90,0.08)' }}
+              onMouseLeave={e => { if (pathname !== link.href) e.currentTarget.style.background = 'transparent' }}
+            >
+              {link.label}
+            </Link>
+          ))}
+        </nav>
+
+        {/* DIREITA - Acoes */}
+        <div style={styles.rightSection}>
+          <button
+            onClick={() => setAberto(true)}
+            style={styles.sacolaBtn}
+            onMouseEnter={e => { e.currentTarget.style.background = '#C4975A'; e.currentTarget.style.color = '#fff' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#2D1B0E' }}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="9" cy="21" r="1" />
               <circle cx="20" cy="21" r="1" />
               <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
             </svg>
-            Sacola
-            {totalItens > 0 && (
-              <span style={{
-                background: 'var(--color-brand-gold)',
-                color: 'white',
-                borderRadius: '50%',
-                width: 22,
-                height: 22,
-                fontSize: 11,
-                fontWeight: 700,
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                lineHeight: 1,
-                transition: 'transform 0.2s',
-              }}>
-                {totalItens}
-              </span>
-            )}
+            Sacola{totalItens > 0 && ` (${totalItens})`}
           </button>
 
-          {/* Usuario logado - circulo com inicial + sair */}
           {usuario ? (
             <>
-              <Link
-                href="/perfil"
-                style={{
-                  width: 42,
-                  height: 42,
-                  borderRadius: '50%',
-                  background: '#C4975A',
-                  color: '#FFFFFF',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 18,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  textDecoration: 'none',
-                  border: '2px solid transparent',
-                  transition: 'all 0.2s ease',
-                  fontFamily: '"Plus Jakarta Sans", sans-serif',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = '#2D1B0E'
-                  e.currentTarget.style.transform = 'scale(1.1)'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = 'transparent'
-                  e.currentTarget.style.transform = 'scale(1)'
-                }}
-              >
-                {getInitial()}
-              </Link>
+              <button style={styles.avatar} onClick={() => router.push('/pedidos')} title={usuario.email}>
+                {userInitial}
+              </button>
               <button
                 onClick={logout}
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: 999,
-                  border: '1px solid var(--color-brand-border)',
-                  color: 'var(--color-brand-text-secondary)',
-                  background: 'transparent',
-                  fontSize: '13px',
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                  fontFamily: '"Plus Jakarta Sans", sans-serif',
-                  transition: 'all 0.25s ease',
-                }}
+                style={styles.logoutBtn}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = '#C4975A'; e.currentTarget.style.color = '#2D1B0E' }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = '#E8DDD0'; e.currentTarget.style.color = '#7A6A5A' }}
               >
                 Sair
               </button>
             </>
           ) : (
-            <Link href="/login" style={{
-              padding: '8px 20px',
-              borderRadius: 999,
-              border: 'none',
-              background: 'var(--color-brand-dark)',
-              color: 'white',
-              fontSize: '13px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              fontFamily: '"Plus Jakarta Sans", sans-serif',
-              textDecoration: 'none',
-              transition: 'all 0.25s ease',
-              letterSpacing: '0.3px',
-              boxShadow: '0 2px 8px rgba(45, 27, 14, 0.15)',
-            }}>
+            <button
+              onClick={() => router.push('/login')}
+              style={{
+                ...styles.sacolaBtn,
+                background: '#2D1B0E',
+                color: '#fff',
+                border: 'none',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#4A2F1A' }}
+              onMouseLeave={e => { e.currentTarget.style.background = '#2D1B0E' }}
+            >
               Entrar
-            </Link>
+            </button>
           )}
         </div>
       </div>

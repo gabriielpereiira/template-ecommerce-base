@@ -48,7 +48,7 @@ export default function LoginPage() {
       }
       return
     }
-    router.push('/cardapio')
+    router.push('/')
   }
 
   async function handleResetSenha() {
