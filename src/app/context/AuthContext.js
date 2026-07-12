@@ -11,7 +11,7 @@ export function AuthProvider({ children }) {
 
   async function carregarPerfil(userId) {
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
@@ -20,14 +20,23 @@ export function AuthProvider({ children }) {
       if (data) {
         // Perfil encontrado no banco
         setPerfil(data)
-        localStorage.setItem('user', JSON.stringify({ id: data.id, nome: data.nome, email: data.email }))
-      } else {
-        // Perfil nao encontrado no banco -- verifica se tem dados pendentes no localStorage
-        const dadosPendentes = localStorage.getItem('dadosPerfilPendentes')
-        if (dadosPendentes) {
-          try {
-            const parsed = JSON.parse(dadosPendentes)
-            // Tenta salvar no banco agora que o usuario esta logado
+        localStorage.setItem('user', JSON.stringify({
+          id: data.id,
+          nome: data.nome,
+          email: data.email
+        }))
+        setCarregando(false)
+        return
+      }
+
+      // Se chegou aqui, nao tem perfil no banco
+      // Verifica se tem dados pendentes salvos durante o cadastro
+      const dadosPendentes = localStorage.getItem('dadosPerfilPendentes')
+      if (dadosPendentes) {
+        try {
+          const parsed = JSON.parse(dadosPendentes)
+          if (parsed.id === userId) {
+            // Tenta salvar no banco agora que o usuario esta autenticado
             const { data: perfilSalvo, error: erroSalvar } = await supabase
               .from('profiles')
               .upsert({
@@ -49,27 +58,37 @@ export function AuthProvider({ children }) {
             if (!erroSalvar && perfilSalvo) {
               setPerfil(perfilSalvo)
               localStorage.removeItem('dadosPerfilPendentes')
-              console.log('[AuthContext] Dados pendentes salvos no banco com sucesso')
-            } else {
-              console.warn('[AuthContext] Erro ao salvar dados pendentes:', erroSalvar)
-              // Se falhou, mantem no localStorage e usa os dados de la
-              setPerfil(parsed)
+              localStorage.setItem('user', JSON.stringify({
+                id: perfilSalvo.id,
+                nome: perfilSalvo.nome,
+                email: perfilSalvo.email
+              }))
+              setCarregando(false)
+              return
             }
-          } catch (e) {
-            console.warn('[AuthContext] Erro ao processar dados pendentes:', e)
-            localStorage.removeItem('dadosPerfilPendentes')
+
+            // Se o upsert falhou, usa os dados do localStorage mesmo
+            setPerfil(parsed)
+            setCarregando(false)
+            return
           }
-        } else {
-          // Sem dados pendentes, salva basico do auth
-          const session = (await supabase.auth.getSession()).data.session
-          if (session?.user) {
-            localStorage.setItem('user', JSON.stringify({ id: session.user.id, email: session.user.email }))
-          }
+        } catch (e) {
+          // Dados corrompidos, limpa
+          localStorage.removeItem('dadosPerfilPendentes')
         }
       }
+
+      // Sem dados em lugar nenhum - salva basico do auth
+      const session = (await supabase.auth.getSession()).data.session
+      if (session?.user) {
+        localStorage.setItem('user', JSON.stringify({
+          id: session.user.id,
+          email: session.user.email
+        }))
+      }
+      setCarregando(false)
     } catch (err) {
-      console.error('Erro ao carregar perfil:', err)
-    } finally {
+      console.error('[AuthContext] Erro ao carregar perfil:', err)
       setCarregando(false)
     }
   }
@@ -108,7 +127,6 @@ export function AuthProvider({ children }) {
         .upsert({ id: usuario.id, ...dados, updated_at: new Date().toISOString() })
         .select()
         .single()
-
       if (error) return { error: error.message }
       if (data) setPerfil(data)
       return { data }
@@ -119,10 +137,7 @@ export function AuthProvider({ children }) {
 
   async function cadastrar(email, senha) {
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password: senha,
-      })
+      const { data, error } = await supabase.auth.signUp({ email, password: senha })
       if (error) return { data: null, error: { message: error.message } }
       return { data, error: null }
     } catch (err) {
@@ -143,7 +158,9 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ usuario, perfil, carregando, cadastrar, login, logout, atualizarPerfil }}>
+    <AuthContext.Provider value={{
+      usuario, perfil, carregando, cadastrar, login, logout, atualizarPerfil
+    }}>
       {children}
     </AuthContext.Provider>
   )
