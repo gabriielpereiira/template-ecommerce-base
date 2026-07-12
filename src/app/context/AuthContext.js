@@ -1,8 +1,8 @@
 'use client'
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 
-const AuthContext = createContext()
+const AuthContext = createContext({})
 
 export function AuthProvider({ children }) {
   const [usuario, setUsuario] = useState(null)
@@ -19,11 +19,18 @@ export function AuthProvider({ children }) {
 
       if (data) {
         setPerfil(data)
-        localStorage.setItem('user', JSON.stringify({ id: data.id, nome: data.nome, email: data.email }))
+        localStorage.setItem('user', JSON.stringify({
+          id: data.id,
+          nome: data.nome,
+          email: data.email
+        }))
       } else {
         const session = (await supabase.auth.getSession()).data.session
         if (session?.user) {
-          localStorage.setItem('user', JSON.stringify({ id: session.user.id, email: session.user.email }))
+          localStorage.setItem('user', JSON.stringify({
+            id: session.user.id,
+            email: session.user.email
+          }))
         }
       }
     } catch (err) {
@@ -76,30 +83,20 @@ export function AuthProvider({ children }) {
     }
   }
 
-  async function cadastrar(dados) {
-    const { email, senha } = dados
+  async function cadastrar(email, senha) {
     try {
-      const response = await fetch('https://nqjkcqloenliiftcgvro.supabase.co/auth/v1/signup', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xamtjcWxvZW5saWlmdGNndnJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4Nzk0ODUsImV4cCI6MjA5NzQ1NTQ4NX0.lnqoY32fPB9eQP0xKlDeetw4iOUblsoy_mDQk4UpJPg',
-        },
-        body: JSON.stringify({
-          email: email,
-          password: senha,
-        }),
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password: senha,
       })
 
-      const data = await response.json()
-
-      if (!response.ok) {
-        return { error: { message: data.msg || data.error || 'Erro ao criar conta' } }
+      if (error) {
+        return { data: null, error: { message: error.message } }
       }
 
       return { data, error: null }
     } catch (err) {
-      return { error: { message: err.message || 'Erro ao criar conta' } }
+      return { data: null, error: { message: err.message || 'Erro ao criar conta' } }
     }
   }
 

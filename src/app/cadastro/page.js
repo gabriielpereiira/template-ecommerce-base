@@ -6,7 +6,7 @@ import Header from '../../components/Header'
 
 export default function CadastroPage() {
   const router = useRouter()
-  const { cadastrar } = useAuth()
+  const { cadastrar, atualizarPerfil } = useAuth()
   const [form, setForm] = useState({
     nome: '',
     telefone: '',
@@ -96,6 +96,11 @@ export default function CadastroPage() {
     e.preventDefault()
     setError('')
 
+    if (!form.nome) {
+      setError('Preencha o nome completo.')
+      return
+    }
+
     if (form.senha !== form.confirmarSenha) {
       setError('As senhas nao conferem.')
       return
@@ -104,10 +109,17 @@ export default function CadastroPage() {
     setSubmitting(true)
 
     try {
+      const { data: authData, error: authError } = await cadastrar(form.email, form.senha)
+
+      if (authError || !authData?.user) {
+        setError(authError?.message || 'Nao foi possivel criar a conta.')
+        setSubmitting(false)
+        return
+      }
+
+      // Salva o perfil usando a funcao do AuthContext
       const telefoneDigits = form.telefone.replace(/\D/g, '')
-      const { error: cadastroError } = await cadastrar({
-        email: form.email,
-        senha: form.senha,
+      const { error: perfilError } = await atualizarPerfil({
         nome: form.nome,
         telefone: telefoneDigits,
         cep: form.cep,
@@ -116,21 +128,19 @@ export default function CadastroPage() {
         complemento: form.complemento,
         bairro: form.bairro,
         cidade: form.cidade,
-        estado: form.estado,
+        estado: form.estado
       })
 
-      if (cadastroError) {
-        setError(cadastroError.message || 'Erro ao criar conta.')
-        setSubmitting(false)
-        return
+      if (perfilError) {
+        console.error('Erro ao salvar perfil:', perfilError)
       }
 
       setSuccess(true)
-    } catch {
-      setError('Erro inesperado. Tente novamente.')
+    } catch (err) {
+      setError(err?.message || 'Nao foi possivel concluir o cadastro. Tente novamente.')
+    } finally {
+      setSubmitting(false)
     }
-
-    setSubmitting(false)
   }
 
   if (success) {
@@ -170,15 +180,14 @@ export default function CadastroPage() {
               lineHeight: '1.6',
               marginBottom: 24,
             }}>
-              Seu cadastro foi criado com sucesso. Um email de confirmacao foi enviado para o seu endereco.
-              Verifique sua caixa de entrada para confirmar sua conta.
+              Seu cadastro foi criado com sucesso. Agora voce ja pode fazer seu primeiro pedido!
             </p>
-            <button onClick={() => router.push('/login')} className="btn btn-primary btn-lg">
-              Ir para o login
+            <button onClick={() => router.push('/cardapio')} className="btn btn-primary btn-lg">
+              Ir para o cardapio
             </button>
             <p style={{ marginTop: 16, fontSize: 14, color: 'var(--color-brand-text-secondary)' }}>
               <button
-                onClick={() => router.push('/login')}
+                onClick={() => router.push('/perfil')}
                 style={{
                   color: 'var(--color-brand-gold)',
                   fontWeight: 600,
@@ -193,7 +202,7 @@ export default function CadastroPage() {
                 onMouseEnter={e => e.currentTarget.style.color = 'var(--color-brand-gold-dark)'}
                 onMouseLeave={e => e.currentTarget.style.color = 'var(--color-brand-gold)'}
               >
-                Ja tenho conta, voltar ao login
+                Completar meus dados
               </button>
             </p>
           </div>
