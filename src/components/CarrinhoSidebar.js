@@ -343,7 +343,7 @@ export default function CarrinhoSidebar() {
               CEP para entrega
             </p>
             <p style={{ margin: '0 0 8px', fontSize: '12px', color: COLORS.textSecondary }}>
-              Entregamos apenas em Rio Grande e regiao.
+              Entregamos apenas em Rio Grande e região.
             </p>
             <div style={{ display: 'flex', gap: '8px' }}>
               <input type="text" value={cep}

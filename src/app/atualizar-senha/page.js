@@ -18,7 +18,7 @@ export default function AtualizarSenhaPage() {
       const { data, error } = await supabase.auth.getSession()
 
       if (error) {
-        setMensagem({ tipo: 'erro', texto: 'Link invalido ou expirado. Solicite uma nova redefinicao de senha.' })
+        setMensagem({ tipo: 'erro', texto: 'Link inválido ou expirado. Solicite uma nova redefinição de senha.' })
         setProcessando(false)
         return
       }
@@ -35,12 +35,12 @@ export default function AtualizarSenhaPage() {
     setMensagem(null)
 
     if (novaSenha.length < 6) {
-      setMensagem({ tipo: 'erro', texto: 'A senha deve ter no minimo 6 caracteres.' })
+      setMensagem({ tipo: 'erro', texto: 'A senha deve ter no mínimo 6 caracteres.' })
       return
     }
 
     if (novaSenha !== confirmarSenha) {
-      setMensagem({ tipo: 'erro', texto: 'As senhas nao conferem.' })
+      setMensagem({ tipo: 'erro', texto: 'As senhas não conferem.' })
       return
     }
 

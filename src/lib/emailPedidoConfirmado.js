@@ -88,7 +88,7 @@ export function emailPedidoConfirmado({ nomeCliente, pedidoId, total, itens }) {
                           Proximos passos
                         </p>
                         <p style="margin: 0; font-size: 13px; color: #6B4F3A; line-height: 1.6; font-family: 'Inter', Arial, sans-serif;">
-                          Seu pedido entrara em preparacao em breve. Assim que estiver pronto, voce recebera outra notificacao.
+                          Seu pedido entrará em preparação em breve. Assim que estiver pronto, você receberá outra notificação.
                           Acompanhe o status pelo site em <strong>Meus Pedidos</strong>.
                         </p>
                       </td>

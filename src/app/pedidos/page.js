@@ -139,7 +139,7 @@ export default function PedidosPage() {
               Nenhum pedido ainda
             </p>
             <p style={{ fontFamily: SANS, fontSize: 14, color: COLORS.textSecondary, marginBottom: 24 }}>
-              Seu historico de pedidos aparecera aqui.
+              Seu histórico de pedidos aparecerá aqui.
             </p>
             <button
               onClick={() => router.push('/cardapio')}
@@ -260,7 +260,7 @@ export default function PedidosPage() {
                         <p style={{ fontFamily: SANS, fontSize: 12, fontWeight: 700, color: COLORS.textSecondary, marginBottom: 4 }}>
                           {pedido.forma_entrega === 'retirar'
                             ? 'Retirada no local'
-                            : 'Endereco de entrega'}
+                            : 'Endereço de entrega'}
                         </p>
                         <p style={{ fontFamily: SANS, fontSize: 13, color: COLORS.dark, margin: 0, whiteSpace: 'pre-line' }}>
                           {formatarEndereco(pedido.endereco_entrega)}

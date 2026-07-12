@@ -83,7 +83,7 @@ export default function CadastroPage() {
           estado: data.uf || ''
         }))
       } else {
-        setCepError('CEP nao encontrado. Verifique e tente novamente.')
+        setCepError('CEP não encontrado. Verifique e tente novamente.')
       }
     } catch {
       setCepError('Erro ao buscar o CEP. Tente novamente.')
@@ -168,7 +168,7 @@ export default function CadastroPage() {
               lineHeight: '1.6',
               marginBottom: 24,
             }}>
-              Seu cadastro foi criado com sucesso. Um email de confirmacao foi enviado para o seu endereco.
+              Seu cadastro foi criado com sucesso. Um email de confirmação foi enviado para o seu endereço.
               Verifique sua caixa de entrada para confirmar sua conta.
             </p>
             <button onClick={() => router.push('/login')} className="btn btn-primary btn-lg">
@@ -191,7 +191,7 @@ export default function CadastroPage() {
                 onMouseEnter={e => e.currentTarget.style.color = 'var(--color-brand-gold-dark)'}
                 onMouseLeave={e => e.currentTarget.style.color = 'var(--color-brand-gold)'}
               >
-                Ja tenho conta, voltar ao login
+                Já tenho conta, voltar ao login
               </button>
             </p>
           </div>

@@ -42,7 +42,7 @@ export default function LoginPage() {
     setEnviando(false)
     if (error) {
       if (error.message.includes('Email not confirmed')) {
-        setErro('Seu email ainda nao foi confirmado. Verifique sua caixa de entrada ou spam.')
+        setErro('Seu email ainda não foi confirmado. Verifique sua caixa de entrada ou spam.')
       } else {
         setErro(error.message)
       }
@@ -63,9 +63,9 @@ export default function LoginPage() {
         redirectTo: `${window.location.origin}/atualizar-senha`,
       })
       if (error) {
-        setMensagemReset({ tipo: 'erro', texto: error.message || 'Erro ao enviar email de redefinicao.' })
+        setMensagemReset({ tipo: 'erro', texto: error.message || 'Erro ao enviar email de redefinição.' })
       } else {
-        setMensagemReset({ tipo: 'sucesso', texto: 'Email de redefinicao enviado! Verifique sua caixa de entrada.' })
+        setMensagemReset({ tipo: 'sucesso', texto: 'Email de redefinição enviado! Verifique sua caixa de entrada.' })
       }
     } catch {
       setMensagemReset({ tipo: 'erro', texto: 'Erro ao enviar email. Tente novamente.' })
@@ -243,7 +243,7 @@ export default function LoginPage() {
               color: 'var(--color-brand-text-secondary)',
               marginBottom: 20,
             }}>
-              Digite seu email para receber o link de redefinicao.
+              Digite seu email para receber o link de redefinição.
             </p>
 
             <div className="input-group" style={{ marginBottom: 16 }}>

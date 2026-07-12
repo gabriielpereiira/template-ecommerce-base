@@ -32,7 +32,7 @@ export function emailSaiuEntrega({ nomeCliente, pedidoId }) {
                   </p>
                   <p style="margin: 0 0 20px; font-size: 14px; color: #6B4F3A; line-height: 1.6; font-family: 'Inter', Arial, sans-serif;">
                     Seu pedido <strong>#${pedidoId ? pedidoId.slice(0, 8).toUpperCase() : ''}</strong> saiu para entrega!
-                    Fique atento ao seu endereco, pois em breve o entregador chegara.
+                    Fique atento ao seu endereço, pois em breve o entregador chegará.
                   </p>
 
                   <!-- Card de alerta -->

@@ -279,7 +279,7 @@ export default function CardapioPage() {
             marginRight: 'auto',
             lineHeight: 1.6
           }}>
-            Cada fatia feita a mao com ingredientes selecionados e o carinho de sempre.
+            Cada fatia feita à mão com ingredientes selecionados e o carinho de sempre.
           </p>
         </div>
       </div>
