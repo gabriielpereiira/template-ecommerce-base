@@ -6,7 +6,7 @@ import Header from '../../components/Header'
 
 export default function CadastroPage() {
   const router = useRouter()
-  const { cadastrar, atualizarPerfil } = useAuth()
+  const { cadastrar } = useAuth()
   const [form, setForm] = useState({
     nome: '',
     telefone: '',
@@ -101,6 +101,11 @@ export default function CadastroPage() {
       return
     }
 
+    if (form.senha.length < 6) {
+      setError('A senha deve ter no minimo 6 caracteres.')
+      return
+    }
+
     if (form.senha !== form.confirmarSenha) {
       setError('As senhas nao conferem.')
       return
@@ -117,22 +122,30 @@ export default function CadastroPage() {
         return
       }
 
-      // Salva o perfil usando a funcao do AuthContext
+      // Salva o perfil usando a API route com service role (bypass RLS)
+      // Usa o campo "id" que referencia auth.users.id - igual ao nome da coluna no banco
       const telefoneDigits = form.telefone.replace(/\D/g, '')
-      const { error: perfilError } = await atualizarPerfil({
-        nome: form.nome,
-        telefone: telefoneDigits,
-        cep: form.cep,
-        logradouro: form.logradouro,
-        numero: form.numero,
-        complemento: form.complemento,
-        bairro: form.bairro,
-        cidade: form.cidade,
-        estado: form.estado
+
+      const res = await fetch('/api/criar-perfil', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: authData.user.id,
+          nome: form.nome,
+          telefone: telefoneDigits,
+          cep: form.cep,
+          logradouro: form.logradouro,
+          numero: form.numero,
+          complemento: form.complemento,
+          bairro: form.bairro,
+          cidade: form.cidade,
+          estado: form.estado
+        })
       })
 
-      if (perfilError) {
-        console.error('Erro ao salvar perfil:', perfilError)
+      const profileResult = await res.json()
+      if (!profileResult.success) {
+        console.error('Erro ao salvar perfil:', profileResult.error)
       }
 
       setSuccess(true)
@@ -180,14 +193,15 @@ export default function CadastroPage() {
               lineHeight: '1.6',
               marginBottom: 24,
             }}>
-              Seu cadastro foi criado com sucesso. Agora voce ja pode fazer seu primeiro pedido!
+              Sua conta foi criada com sucesso. Enviamos um email de confirmacao para <strong>{form.email}</strong>.
+              Apos confirmar, faca login e seus dados ja estarao preenchidos no perfil.
             </p>
-            <button onClick={() => router.push('/cardapio')} className="btn btn-primary btn-lg">
-              Ir para o cardapio
+            <button onClick={() => router.push('/login')} className="btn btn-primary btn-lg">
+              Ir para o login
             </button>
             <p style={{ marginTop: 16, fontSize: 14, color: 'var(--color-brand-text-secondary)' }}>
               <button
-                onClick={() => router.push('/perfil')}
+                onClick={() => router.push('/login')}
                 style={{
                   color: 'var(--color-brand-gold)',
                   fontWeight: 600,
@@ -202,7 +216,7 @@ export default function CadastroPage() {
                 onMouseEnter={e => e.currentTarget.style.color = 'var(--color-brand-gold-dark)'}
                 onMouseLeave={e => e.currentTarget.style.color = 'var(--color-brand-gold)'}
               >
-                Completar meus dados
+                Ja tenho conta, fazer login
               </button>
             </p>
           </div>

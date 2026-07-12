@@ -4,23 +4,36 @@ export async function POST(request) {
   try {
     const dados = await request.json()
 
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-    )
-
-    const { data, error } = await supabaseAdmin
-      .from('profiles')
-      .upsert({
-        ...dados,
-        updated_at: new Date().toISOString()
-      })
-
-    if (error) {
-      return Response.json({ success: false, error: error.message }, { status: 400 })
+    if (!dados.id) {
+      return Response.json({ success: false, error: 'ID do usuario e obrigatorio' }, { status: 400 })
     }
 
-    return Response.json({ success: true, data })
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+    if (serviceRoleKey) {
+      // Modo admin: usa service role pra bypassar RLS
+      const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey)
+      const { data, error } = await supabaseAdmin
+        .from('profiles')
+        .upsert({
+          ...dados,
+          updated_at: new Date().toISOString()
+        })
+
+      if (error) {
+        return Response.json({ success: false, error: error.message }, { status: 400 })
+      }
+
+      return Response.json({ success: true, data })
+    } else {
+      // Se nao tem service role key configurada, tenta com anon key
+      // Nesse caso o usuario precisa estar logado e a tabela precisa ter RLS liberado
+      return Response.json({
+        success: false,
+        error: 'SUPABASE_SERVICE_ROLE_KEY nao configurada. Configure a env var no deploy.'
+      }, { status: 500 })
+    }
   } catch (err) {
     return Response.json({ success: false, error: err.message }, { status: 500 })
   }
