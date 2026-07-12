@@ -78,6 +78,7 @@ export default function PedidosPage() {
       router.push('/login')
       return
     }
+
     async function carregarPedidos() {
       try {
         const { data, error } = await supabase
@@ -85,6 +86,7 @@ export default function PedidosPage() {
           .select('*')
           .eq('user_id', usuario.id)
           .order('criado_em', { ascending: false })
+
         if (error) {
           console.error('Erro ao carregar pedidos:', error)
           setPedidos([])
@@ -98,6 +100,7 @@ export default function PedidosPage() {
         setCarregando(false)
       }
     }
+
     carregarPedidos()
   }, [usuario, router])
 
@@ -139,7 +142,7 @@ export default function PedidosPage() {
               Nenhum pedido ainda
             </p>
             <p style={{ fontFamily: SANS, fontSize: 14, color: COLORS.textSecondary, marginBottom: 24 }}>
-              Seu hist�rico de pedidos aparecer� aqui.
+              Seu histórico de pedidos aparecerá aqui.
             </p>
             <button
               onClick={() => router.push('/cardapio')}
@@ -155,7 +158,7 @@ export default function PedidosPage() {
                 fontFamily: SANS
               }}
             >
-              Ver Cardapio
+              Ver Cardápio
             </button>
           </div>
         ) : (
@@ -187,7 +190,6 @@ export default function PedidosPage() {
                       {formatarData(pedido.criado_em)}
                     </p>
                   </div>
-
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                     <span style={{
                       padding: '4px 12px',
@@ -260,7 +262,7 @@ export default function PedidosPage() {
                         <p style={{ fontFamily: SANS, fontSize: 12, fontWeight: 700, color: COLORS.textSecondary, marginBottom: 4 }}>
                           {pedido.forma_entrega === 'retirar'
                             ? 'Retirada no local'
-                            : 'Endere�o de entrega'}
+                            : 'Endereço de entrega'}
                         </p>
                         <p style={{ fontFamily: SANS, fontSize: 13, color: COLORS.dark, margin: 0, whiteSpace: 'pre-line' }}>
                           {formatarEndereco(pedido.endereco_entrega)}
@@ -271,7 +273,7 @@ export default function PedidosPage() {
                     {pedido.observacoes && (
                       <div style={{ marginTop: 12 }}>
                         <p style={{ fontFamily: SANS, fontSize: 12, fontWeight: 700, color: COLORS.textSecondary, marginBottom: 4 }}>
-                          Observacoes
+                          Observações
                         </p>
                         <p style={{ fontFamily: SANS, fontSize: 13, color: COLORS.dark, margin: 0 }}>
                           {pedido.observacoes}

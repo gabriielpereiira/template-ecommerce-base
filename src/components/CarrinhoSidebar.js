@@ -163,7 +163,7 @@ export default function CarrinhoSidebar() {
 
   function handleFinalizar() {
     if (!usuario) { setToast('Faca login para finalizar o pedido'); return }
-    if (itens.length === 0) { setToast('Sua sacola esta vazia'); return }
+    if (itens.length === 0) { setToast('Sua sacola est√° vazia'); return }
     if (!nomeCliente.trim()) { setToast('Informe seu nome para finalizar'); return }
     if (!telefoneCliente.trim()) { setToast('Informe seu telefone para finalizar'); return }
     if (!freteData) {
@@ -343,7 +343,7 @@ export default function CarrinhoSidebar() {
               CEP para entrega
             </p>
             <p style={{ margin: '0 0 8px', fontSize: '12px', color: COLORS.textSecondary }}>
-              Entregamos apenas em Rio Grande e regi„o.
+              Entregas apenas na cidade de Rio Grande/RS.
             </p>
             <div style={{ display: 'flex', gap: '8px' }}>
               <input type="text" value={cep}

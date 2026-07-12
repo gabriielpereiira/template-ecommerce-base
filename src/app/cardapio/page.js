@@ -15,7 +15,6 @@ const COLORS = {
   border: '#E8E0D8',
   textOnDark: '#F0EBE4'
 }
-
 const SERIF = 'Georgia, "Times New Roman", serif'
 const SANS = 'Inter, Arial, sans-serif'
 
@@ -228,6 +227,7 @@ export default function CardapioPage() {
       imagem_url: produto.imagem_url,
       quantidade: 1
     })
+
     setFeedback(`${produto.nome} adicionado ao carrinho!`)
     setAdicionandoId(produto.id)
     setTimeout(() => { setAdicionandoId(null) }, 1500)
@@ -245,7 +245,7 @@ export default function CardapioPage() {
     <div style={{ background: COLORS.bg, minHeight: '100vh', fontFamily: SANS }}>
       <Header />
 
-      {/* Hero do cardapio */}
+      {/* Hero do cardápio */}
       <div style={{
         background: COLORS.dark,
         padding: '80px 24px 60px',
@@ -267,7 +267,7 @@ export default function CardapioPage() {
             margin: '0 0 12px 0',
             letterSpacing: '-0.5px'
           }}>
-            Cardapio Gourmet
+            Cardápio Gourmet
           </h1>
           <p className="animar-fade-up animar-atraso-2" style={{
             fontSize: '16px',
@@ -279,7 +279,7 @@ export default function CardapioPage() {
             marginRight: 'auto',
             lineHeight: 1.6
           }}>
-            Cada fatia feita � m�o com ingredientes selecionados e o carinho de sempre.
+            Cada fatia feita à mão com ingredientes selecionados e o carinho de sempre.
           </p>
         </div>
       </div>

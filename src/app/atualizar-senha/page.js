@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 
@@ -7,23 +7,20 @@ export default function AtualizarSenhaPage() {
   const router = useRouter()
   const [novaSenha, setNovaSenha] = useState('')
   const [confirmarSenha, setConfirmarSenha] = useState('')
-  const [enviando, setEnviando] = useState(false)
   const [mensagem, setMensagem] = useState(null)
   const [processando, setProcessando] = useState(true)
+  const [enviando, setEnviando] = useState(false)
 
   useEffect(() => {
-    // O Supabase coloca o token de recuperacao na URL hash
-    // O client do Supabase consegue extrair isso automaticamente
     const handleRecovery = async () => {
       const { data, error } = await supabase.auth.getSession()
 
       if (error) {
-        setMensagem({ tipo: 'erro', texto: 'Link inv·lido ou expirado. Solicite uma nova redefiniÁ„o de senha.' })
+        setMensagem({ tipo: 'erro', texto: 'Link inv√°lido ou expirado. Solicite uma nova redefini√ß√£o de senha.' })
         setProcessando(false)
         return
       }
 
-      // Se ja tem sessao, pode seguir
       setProcessando(false)
     }
 
@@ -35,12 +32,12 @@ export default function AtualizarSenhaPage() {
     setMensagem(null)
 
     if (novaSenha.length < 6) {
-      setMensagem({ tipo: 'erro', texto: 'A senha deve ter no mÌnimo 6 caracteres.' })
+      setMensagem({ tipo: 'erro', texto: 'A senha deve ter no m√≠nimo 6 caracteres.' })
       return
     }
 
     if (novaSenha !== confirmarSenha) {
-      setMensagem({ tipo: 'erro', texto: 'As senhas n„o conferem.' })
+      setMensagem({ tipo: 'erro', texto: 'As senhas n√£o conferem.' })
       return
     }
 
@@ -69,53 +66,72 @@ export default function AtualizarSenhaPage() {
   if (processando) {
     return (
       <div style={{ maxWidth: 400, margin: '80px auto', textAlign: 'center', fontFamily: 'Arial, sans-serif' }}>
-        <p style={{ color: '#666' }}>Processando link de redefinicao...</p>
+        <p style={{ color: '#666' }}>Processando link de redefini√ß√£o...</p>
       </div>
     )
   }
 
   return (
-    <div style={{ maxWidth: 400, margin: '80px auto', fontFamily: 'Arial, sans-serif' }}>
-      <h1 style={{ fontSize: 24, color: '#4a3728', marginBottom: 8 }}>Redefinir senha</h1>
-      <p style={{ fontSize: 14, color: '#666', marginBottom: 24 }}>Digite sua nova senha.</p>
+    <div style={{ maxWidth: 400, margin: '80px auto', padding: '0 20px', fontFamily: 'Arial, sans-serif' }}>
+      <h1 style={{ textAlign: 'center', fontSize: 24, color: '#2D1B0E', marginBottom: 32 }}>
+        Redefinir senha
+      </h1>
 
       {mensagem && (
-        <p style={{
-          fontSize: 13, marginBottom: 16, padding: '10px 12px', borderRadius: 6,
-          background: mensagem.tipo === 'sucesso' ? '#e8f5e9' : '#ffe8e8',
-          color: mensagem.tipo === 'sucesso' ? '#2e7d32' : '#c00',
+        <div style={{
+          padding: '12px 16px',
+          borderRadius: 8,
+          marginBottom: 20,
+          fontSize: 14,
+          background: mensagem.tipo === 'erro' ? '#FEE2E2' : '#D1FAE5',
+          color: mensagem.tipo === 'erro' ? '#991B1B' : '#065F46',
+          textAlign: 'center'
         }}>
           {mensagem.texto}
-        </p>
+        </div>
       )}
 
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: 16 }}>
-          <label style={{ fontSize: 13, color: '#666', display: 'block', marginBottom: 4 }}>Nova senha</label>
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div>
+          <label style={{ display: 'block', marginBottom: 6, fontSize: 14, fontWeight: 600, color: '#2D1B0E' }}>
+            Nova senha
+          </label>
           <input
             type="password"
-            required
             value={novaSenha}
-            onChange={e => setNovaSenha(e.target.value)}
-            placeholder="Minimo 6 caracteres"
+            onChange={(e) => setNovaSenha(e.target.value)}
+            placeholder="M√≠nimo 6 caracteres"
+            required
             style={{
-              width: '100%', padding: '10px 12px', border: '1px solid #ddd',
-              borderRadius: 6, fontSize: 14, boxSizing: 'border-box'
+              width: '100%',
+              padding: '12px 14px',
+              borderRadius: 8,
+              border: '1px solid #E8E0D8',
+              fontSize: 14,
+              outline: 'none',
+              boxSizing: 'border-box'
             }}
           />
         </div>
 
-        <div style={{ marginBottom: 24 }}>
-          <label style={{ fontSize: 13, color: '#666', display: 'block', marginBottom: 4 }}>Confirmar nova senha</label>
+        <div>
+          <label style={{ display: 'block', marginBottom: 6, fontSize: 14, fontWeight: 600, color: '#2D1B0E' }}>
+            Confirmar nova senha
+          </label>
           <input
             type="password"
-            required
             value={confirmarSenha}
-            onChange={e => setConfirmarSenha(e.target.value)}
-            placeholder="Repita a nova senha"
+            onChange={(e) => setConfirmarSenha(e.target.value)}
+            placeholder="Repita a senha"
+            required
             style={{
-              width: '100%', padding: '10px 12px', border: '1px solid #ddd',
-              borderRadius: 6, fontSize: 14, boxSizing: 'border-box'
+              width: '100%',
+              padding: '12px 14px',
+              borderRadius: 8,
+              border: '1px solid #E8E0D8',
+              fontSize: 14,
+              outline: 'none',
+              boxSizing: 'border-box'
             }}
           />
         </div>
@@ -124,9 +140,15 @@ export default function AtualizarSenhaPage() {
           type="submit"
           disabled={enviando}
           style={{
-            width: '100%', background: enviando ? '#999' : '#4a3728', color: '#fff',
-            border: 'none', padding: '12px', borderRadius: 6, fontSize: 15,
+            padding: '14px 28px',
+            borderRadius: 8,
+            border: 'none',
+            background: enviando ? '#999' : '#C4975A',
+            color: '#fff',
+            fontSize: 15,
+            fontWeight: 700,
             cursor: enviando ? 'not-allowed' : 'pointer',
+            marginTop: 8
           }}
         >
           {enviando ? 'Redefinindo...' : 'Redefinir senha'}

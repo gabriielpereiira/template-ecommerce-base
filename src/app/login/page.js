@@ -23,11 +23,11 @@ export default function LoginPage() {
         <Header />
         <div style={{ maxWidth: 400, margin: '60px auto', textAlign: 'center', padding: '0 16px' }}>
           <h1 style={{ fontSize: 24, color: 'var(--color-brand-dark-light)', marginBottom: 16, fontFamily: 'Georgia, "Times New Roman", serif' }}>
-            Voce ja esta logado
+            Voc√™ j√° est√° logado
           </h1>
           <p style={{ color: 'var(--color-brand-text-secondary)', marginBottom: 24 }}>{usuario.email}</p>
           <a href="/cardapio" className="btn btn-primary">
-            Ir para o cardapio
+            Ir para o card√°pio
           </a>
         </div>
       </>
@@ -38,16 +38,20 @@ export default function LoginPage() {
     e.preventDefault()
     setErro('')
     setEnviando(true)
+
     const { error } = await login(email, senha)
+
     setEnviando(false)
+
     if (error) {
       if (error.message.includes('Email not confirmed')) {
-        setErro('Seu email ainda n„o foi confirmado. Verifique sua caixa de entrada ou spam.')
+        setErro('Seu email ainda n√£o foi confirmado. Verifique sua caixa de entrada ou spam.')
       } else {
         setErro(error.message)
       }
       return
     }
+
     router.push('/')
   }
 
@@ -56,16 +60,19 @@ export default function LoginPage() {
       setMensagemReset({ tipo: 'erro', texto: 'Informe seu email.' })
       return
     }
+
     setEnviandoReset(true)
     setMensagemReset(null)
+
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(emailReset, {
         redirectTo: `${window.location.origin}/atualizar-senha`,
       })
+
       if (error) {
-        setMensagemReset({ tipo: 'erro', texto: error.message || 'Erro ao enviar email de redefiniÁ„o.' })
+        setMensagemReset({ tipo: 'erro', texto: error.message || 'Erro ao enviar email de redefini√ß√£o.' })
       } else {
-        setMensagemReset({ tipo: 'sucesso', texto: 'Email de redefiniÁ„o enviado! Verifique sua caixa de entrada.' })
+        setMensagemReset({ tipo: 'sucesso', texto: 'Email de redefini√ß√£o enviado! Verifique sua caixa de entrada.' })
       }
     } catch {
       setMensagemReset({ tipo: 'erro', texto: 'Erro ao enviar email. Tente novamente.' })
@@ -189,7 +196,7 @@ export default function LoginPage() {
               color: 'var(--color-brand-text-secondary)',
               marginTop: 8,
             }}>
-              Ainda nao tem conta?{' '}
+              Ainda n√£o tem conta?{' '}
               <a
                 href="/cadastro"
                 style={{
@@ -243,7 +250,7 @@ export default function LoginPage() {
               color: 'var(--color-brand-text-secondary)',
               marginBottom: 20,
             }}>
-              Digite seu email para receber o link de redefiniÁ„o.
+              Digite seu email para receber o link de redefini√ß√£o.
             </p>
 
             <div className="input-group" style={{ marginBottom: 16 }}>
