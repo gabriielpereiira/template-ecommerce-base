@@ -27,11 +27,10 @@ export async function POST(request) {
 
       return Response.json({ success: true, data })
     } else {
-      // Se nao tem service role key configurada, tenta com anon key
-      // Nesse caso o usuario precisa estar logado e a tabela precisa ter RLS liberado
+      // Service role key nao configurada
       return Response.json({
         success: false,
-        error: 'SUPABASE_SERVICE_ROLE_KEY nao configurada. Configure a env var no deploy.'
+        error: 'SUPABASE_SERVICE_ROLE_KEY nao configurada'
       }, { status: 500 })
     }
   } catch (err) {

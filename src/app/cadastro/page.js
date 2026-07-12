@@ -59,9 +59,7 @@ export default function CadastroPage() {
         estado: ''
       }))
       setCepError('')
-      if (digits.length === 8) {
-        lookupCep(digits)
-      }
+      if (digits.length === 8) lookupCep(digits)
       return
     }
 
@@ -122,15 +120,48 @@ export default function CadastroPage() {
         return
       }
 
-      // Salva o perfil usando a API route com service role (bypass RLS)
-      // Usa o campo "id" que referencia auth.users.id - igual ao nome da coluna no banco
+      const userId = authData.user.id
       const telefoneDigits = form.telefone.replace(/\D/g, '')
 
-      const res = await fetch('/api/criar-perfil', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: authData.user.id,
+      // Dados organizados pra salvar
+      const dadosPerfil = {
+        id: userId,
+        nome: form.nome,
+        telefone: telefoneDigits,
+        cep: form.cep,
+        logradouro: form.logradouro,
+        numero: form.numero,
+        complemento: form.complemento,
+        bairro: form.bairro,
+        cidade: form.cidade,
+        estado: form.estado
+      }
+
+      // Tenta salvar via API route (precisa da service_role_key no servidor)
+      let salvouNoBanco = false
+      try {
+        const res = await fetch('/api/criar-perfil', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(dadosPerfil)
+        })
+        const result = await res.json()
+        if (result.success) {
+          salvouNoBanco = true
+          console.log('[cadastro] Perfil salvo no banco com sucesso')
+        } else {
+          console.warn('[cadastro] API route falhou:', result.error)
+        }
+      } catch (errApi) {
+        console.warn('[cadastro] Erro ao chamar API route:', errApi)
+      }
+
+      // Se nao conseguiu salvar no banco (service role key nao configurada),
+      // salva no localStorage pra recuperar depois do login
+      if (!salvouNoBanco) {
+        console.log('[cadastro] Salvando dados no localStorage para recuperar depois do login')
+        localStorage.setItem('dadosPerfilPendentes', JSON.stringify({
+          id: userId,
           nome: form.nome,
           telefone: telefoneDigits,
           cep: form.cep,
@@ -140,12 +171,7 @@ export default function CadastroPage() {
           bairro: form.bairro,
           cidade: form.cidade,
           estado: form.estado
-        })
-      })
-
-      const profileResult = await res.json()
-      if (!profileResult.success) {
-        console.error('Erro ao salvar perfil:', profileResult.error)
+        }))
       }
 
       setSuccess(true)
@@ -194,7 +220,7 @@ export default function CadastroPage() {
               marginBottom: 24,
             }}>
               Sua conta foi criada com sucesso. Enviamos um email de confirmacao para <strong>{form.email}</strong>.
-              Apos confirmar, faca login e seus dados ja estarao preenchidos no perfil.
+              Apos confirmar seu email, faca login e seus dados estarao prontos no perfil.
             </p>
             <button onClick={() => router.push('/login')} className="btn btn-primary btn-lg">
               Ir para o login

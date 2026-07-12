@@ -18,19 +18,53 @@ export function AuthProvider({ children }) {
         .maybeSingle()
 
       if (data) {
+        // Perfil encontrado no banco
         setPerfil(data)
-        localStorage.setItem('user', JSON.stringify({
-          id: data.id,
-          nome: data.nome,
-          email: data.email
-        }))
+        localStorage.setItem('user', JSON.stringify({ id: data.id, nome: data.nome, email: data.email }))
       } else {
-        const session = (await supabase.auth.getSession()).data.session
-        if (session?.user) {
-          localStorage.setItem('user', JSON.stringify({
-            id: session.user.id,
-            email: session.user.email
-          }))
+        // Perfil nao encontrado no banco -- verifica se tem dados pendentes no localStorage
+        const dadosPendentes = localStorage.getItem('dadosPerfilPendentes')
+        if (dadosPendentes) {
+          try {
+            const parsed = JSON.parse(dadosPendentes)
+            // Tenta salvar no banco agora que o usuario esta logado
+            const { data: perfilSalvo, error: erroSalvar } = await supabase
+              .from('profiles')
+              .upsert({
+                id: userId,
+                nome: parsed.nome || '',
+                telefone: parsed.telefone || '',
+                cep: parsed.cep || '',
+                logradouro: parsed.logradouro || '',
+                numero: parsed.numero || '',
+                complemento: parsed.complemento || '',
+                bairro: parsed.bairro || '',
+                cidade: parsed.cidade || '',
+                estado: parsed.estado || '',
+                updated_at: new Date().toISOString()
+              })
+              .select()
+              .single()
+
+            if (!erroSalvar && perfilSalvo) {
+              setPerfil(perfilSalvo)
+              localStorage.removeItem('dadosPerfilPendentes')
+              console.log('[AuthContext] Dados pendentes salvos no banco com sucesso')
+            } else {
+              console.warn('[AuthContext] Erro ao salvar dados pendentes:', erroSalvar)
+              // Se falhou, mantem no localStorage e usa os dados de la
+              setPerfil(parsed)
+            }
+          } catch (e) {
+            console.warn('[AuthContext] Erro ao processar dados pendentes:', e)
+            localStorage.removeItem('dadosPerfilPendentes')
+          }
+        } else {
+          // Sem dados pendentes, salva basico do auth
+          const session = (await supabase.auth.getSession()).data.session
+          if (session?.user) {
+            localStorage.setItem('user', JSON.stringify({ id: session.user.id, email: session.user.email }))
+          }
         }
       }
     } catch (err) {
@@ -89,11 +123,7 @@ export function AuthProvider({ children }) {
         email,
         password: senha,
       })
-
-      if (error) {
-        return { data: null, error: { message: error.message } }
-      }
-
+      if (error) return { data: null, error: { message: error.message } }
       return { data, error: null }
     } catch (err) {
       return { data: null, error: { message: err.message || 'Erro ao criar conta' } }
