@@ -16,7 +16,6 @@ const COLORS = {
   border: '#E8E0D8',
   textOnDark: '#F0EBE4'
 }
-
 const SERIF = 'Georgia, "Times New Roman", serif'
 const SANS = 'Inter, Arial, sans-serif'
 
@@ -124,6 +123,7 @@ export default function HomePage() {
   return (
     <div style={{ margin: 0, padding: 0, fontFamily: SANS, background: COLORS.bg, color: COLORS.dark, minHeight: '100vh', overflowX: 'hidden' }}>
       <Header />
+
       <style>{`
         @keyframes fadeUp {
           from { opacity: 0; transform: translateY(30px); }
@@ -300,13 +300,11 @@ export default function HomePage() {
                       </span>
                     )}
                   </div>
-
                   {produto.descricao && (
                     <p style={{ fontSize: '14px', lineHeight: 1.6, color: COLORS.textSecondary, margin: '0 0 20px 0', flex: 1 }}>
                       {produto.descricao}
                     </p>
                   )}
-
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto' }}>
                     <span style={{ fontFamily: SERIF, fontSize: '22px', color: COLORS.dark, fontWeight: 700 }}>
                       {formatarPreco(produto.preco)}
@@ -351,12 +349,33 @@ export default function HomePage() {
         ref={sobreRef}
         className="sobre-section"
         style={{
+          position: 'relative',
+          overflow: 'hidden',
           background: 'linear-gradient(180deg, #3D2216 0%, #2D1B0E 100%)',
           padding: '100px 24px',
           display: 'flex', justifyContent: 'center'
         }}
       >
-        <div style={{ maxWidth: '800px', width: '100%', textAlign: 'center' }}>
+        {/* Video background sutil na secao Sobre */}
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            opacity: 0.08,
+            pointerEvents: 'none',
+          }}
+        >
+          <source src="/videos/hero-bg.mp4" type="video/mp4" />
+        </video>
+
+        <div style={{ maxWidth: '800px', width: '100%', textAlign: 'center', position: 'relative', zIndex: 1 }}>
           <span style={{
             display: 'inline-block', color: COLORS.gold,
             fontSize: '12px', fontWeight: 600,
