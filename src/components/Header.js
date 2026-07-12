@@ -20,6 +20,7 @@ export default function Header() {
   const [loaded, setLoaded] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
+  const [logoHover, setLogoHover] = useState(false)
 
   useEffect(() => {
     setLoaded(true)
@@ -68,7 +69,7 @@ export default function Header() {
     leftSection: {
       display: 'flex',
       alignItems: 'center',
-      gap: 12,
+      gap: 14,
       flexShrink: 0,
     },
     centerNav: {
@@ -83,6 +84,26 @@ export default function Header() {
       alignItems: 'center',
       gap: 8,
       flexShrink: 0,
+    },
+    logoText: {
+      fontFamily: SERIF,
+      fontSize: isMobile ? '18px' : '22px',
+      fontWeight: 700,
+      color: '#2D1B0E',
+      textDecoration: 'none',
+      letterSpacing: '-0.3px',
+      lineHeight: 1.2,
+    },
+    logoSublime: {
+      fontFamily: SANS,
+      fontSize: isMobile ? '9px' : '10px',
+      fontWeight: 500,
+      color: '#A0522D',
+      textDecoration: 'none',
+      letterSpacing: '2.5px',
+      textTransform: 'uppercase',
+      lineHeight: 1,
+      marginTop: 1,
     },
     link: (active) => ({
       display: 'flex',
@@ -146,41 +167,40 @@ export default function Header() {
   return (
     <header style={styles.wrapper}>
       <div style={styles.inner}>
-        {/* ESQUERDA - Logo */}
+        {/* ESQUERDA - Logo + Texto */}
         <div style={styles.leftSection}>
           <Link href="/" style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 10,
+            gap: 14,
             textDecoration: 'none',
             transition: 'opacity 0.3s ease, transform 0.3s ease',
+            opacity: logoHover ? 0.85 : 1,
+            transform: logoHover ? 'scale(1.02)' : 'scale(1)',
           }}
-            onMouseEnter={e => {
-              e.currentTarget.style.opacity = '0.85'
-              e.currentTarget.style.transform = 'scale(1.02)'
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.opacity = '1'
-              e.currentTarget.style.transform = 'scale(1)'
-            }}
+            onMouseEnter={() => setLogoHover(true)}
+            onMouseLeave={() => setLogoHover(false)}
           >
+            {/* Logo circular */}
             <img
               src="/images/logo-header.png"
               alt="Tortas da Lika"
               style={{
-                height: isMobile ? 32 : 40,
+                height: isMobile ? 42 : 50,
                 width: 'auto',
                 display: 'block',
+                borderRadius: '50%',
                 transition: 'transform 0.3s ease',
-              }}
-              className="logo-icon"
-              onMouseEnter={e => {
-                e.currentTarget.style.transform = 'rotate(-3deg)'
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.transform = 'rotate(0deg)'
+                transform: logoHover ? 'rotate(-3deg)' : 'rotate(0deg)',
+                boxShadow: '0 2px 8px rgba(45,27,14,0.1)',
               }}
             />
+
+            {/* Texto ao lado */}
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span style={styles.logoText}>Tortas da Lika</span>
+              <span style={styles.logoSublime}>Confeitaria Artesanal</span>
+            </div>
           </Link>
         </div>
 
