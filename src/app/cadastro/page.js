@@ -83,7 +83,7 @@ export default function CadastroPage() {
           estado: data.uf || ''
         }))
       } else {
-        setCepError('CEP não encontrado. Verifique e tente novamente.')
+        setCepError('CEP nao encontrado. Verifique e tente novamente.')
       }
     } catch {
       setCepError('Erro ao buscar o CEP. Tente novamente.')
@@ -102,6 +102,7 @@ export default function CadastroPage() {
     }
 
     setSubmitting(true)
+
     try {
       const telefoneDigits = form.telefone.replace(/\D/g, '')
       const { error: cadastroError } = await cadastrar({
@@ -128,6 +129,7 @@ export default function CadastroPage() {
     } catch {
       setError('Erro inesperado. Tente novamente.')
     }
+
     setSubmitting(false)
   }
 
@@ -168,7 +170,7 @@ export default function CadastroPage() {
               lineHeight: '1.6',
               marginBottom: 24,
             }}>
-              Seu cadastro foi criado com sucesso. Um email de confirma��o foi enviado para o seu endere�o.
+              Seu cadastro foi criado com sucesso. Um email de confirmacao foi enviado para o seu endereco.
               Verifique sua caixa de entrada para confirmar sua conta.
             </p>
             <button onClick={() => router.push('/login')} className="btn btn-primary btn-lg">
@@ -191,7 +193,7 @@ export default function CadastroPage() {
                 onMouseEnter={e => e.currentTarget.style.color = 'var(--color-brand-gold-dark)'}
                 onMouseLeave={e => e.currentTarget.style.color = 'var(--color-brand-gold)'}
               >
-                J� tenho conta, voltar ao login
+                Ja tenho conta, voltar ao login
               </button>
             </p>
           </div>
@@ -236,7 +238,6 @@ export default function CadastroPage() {
           </p>
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {/* Nome */}
             <div className="input-group">
               <label className="input-label">Nome completo</label>
               <input
@@ -249,7 +250,6 @@ export default function CadastroPage() {
               />
             </div>
 
-            {/* Telefone */}
             <div className="input-group">
               <label className="input-label">Telefone</label>
               <input
@@ -261,7 +261,6 @@ export default function CadastroPage() {
               />
             </div>
 
-            {/* Email */}
             <div className="input-group">
               <label className="input-label">Email</label>
               <input
@@ -275,7 +274,6 @@ export default function CadastroPage() {
               />
             </div>
 
-            {/* Senhas */}
             <div style={{ display: 'flex', gap: 12 }}>
               <div className="input-group" style={{ flex: 1 }}>
                 <label className="input-label">Senha</label>
@@ -284,7 +282,7 @@ export default function CadastroPage() {
                   name="senha"
                   value={form.senha}
                   onChange={handleChange}
-                  placeholder="Mínimo 6 caracteres"
+                  placeholder="Minimo 6 caracteres"
                   required
                   className="input"
                 />
@@ -303,7 +301,6 @@ export default function CadastroPage() {
               </div>
             </div>
 
-            {/* CEP + Numero */}
             <div style={{ display: 'flex', gap: 12 }}>
               <div className="input-group" style={{ flex: '0 0 140px' }}>
                 <label className="input-label">CEP</label>
@@ -330,7 +327,6 @@ export default function CadastroPage() {
               </div>
             </div>
 
-            {/* Logradouro */}
             <div className="input-group">
               <label className="input-label">Logradouro</label>
               <input
@@ -353,7 +349,6 @@ export default function CadastroPage() {
               />
             </div>
 
-            {/* Complemento */}
             <div className="input-group">
               <label className="input-label">Complemento</label>
               <input
@@ -365,7 +360,6 @@ export default function CadastroPage() {
               />
             </div>
 
-            {/* Bairro / Cidade / Estado */}
             <div style={{ display: 'flex', gap: 12 }}>
               <div className="input-group" style={{ flex: 1 }}>
                 <label className="input-label">Bairro</label>
