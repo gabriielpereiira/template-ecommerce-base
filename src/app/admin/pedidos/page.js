@@ -185,6 +185,79 @@ export default function AdminPedidosPage() {
     setConfirmNovoStatus(null)
   }
 
+  function exportarParaCSV() {
+    const dados = pedidosFiltrados
+
+    if (dados.length === 0) {
+      alert('Nenhum pedido para exportar.')
+      return
+    }
+
+    const linhas = []
+    linhas.push([
+      'Pedido',
+      'Data',
+      'Cliente',
+      'Telefone',
+      'Email',
+      'Status',
+      'Itens',
+      'Cupom',
+      'Subtotal',
+      'Frete',
+      'Desconto',
+      'Total',
+      'Forma Entrega',
+      'Pagamento',
+      'Endereco',
+      'Bairro'
+    ].join(';'))
+
+    for (const p of dados) {
+      const itensStr = Array.isArray(p.itens)
+        ? p.itens.map(i => `${i.quantidade || i.quantity || 1}x ${i.nome || i.title}`).join(' | ')
+        : (p.itens || '')
+
+      const cupomStr = p.cupom_aplicado
+        ? (typeof p.cupom_aplicado === 'object' ? p.cupom_aplicado.codigo : p.cupom_aplicado)
+        : ''
+
+      const linha = [
+        `#${String(p.id).slice(0, 8).toUpperCase()}`,
+        formatarData(p.criado_em || p.created_at),
+        p.cliente_nome || p.nome_cliente || '',
+        p.cliente_telefone || p.telefone_cliente || '',
+        p.email_cliente || '',
+        STATUS_LABELS[p.status] || p.status,
+        `"${(itensStr || '').replace(/"/g, '""')}"`,
+        cupomStr,
+        Number(p.subtotal || 0).toFixed(2).replace('.', ','),
+        Number(p.valor_frete || 0).toFixed(2).replace('.', ','),
+        Number(p.desconto || 0).toFixed(2).replace('.', ','),
+        Number(p.total || 0).toFixed(2).replace('.', ','),
+        p.forma_entrega || '',
+        p.pagamento_status || '',
+        `"${(p.endereco_entrega || '').replace(/"/g, '""')}"`,
+        p.bairro_entrega || ''
+      ]
+
+      linhas.push(linha.join(';'))
+    }
+
+    const csvString = '\uFEFF' + linhas.join('\n')
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+
+    const link = document.createElement('a')
+    link.href = url
+    const dataStr = new Date().toISOString().split('T')[0]
+    link.setAttribute('download', `pedidos-${dataStr}.csv`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
   if (!adminVerificado) {
     return (
       <div style={{ minHeight: '100vh', background: COLORS.background, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -194,9 +267,7 @@ export default function AdminPedidosPage() {
   }
 
   const pedidosFiltrados = pedidos.filter(p => {
-    // Filtro por status
     if (filtro !== 'todos' && p.status !== filtro) return false
-    // Filtro por data
     if (filtroData) {
       const dataPedido = p.criado_em ? p.criado_em.split('T')[0] : (p.created_at ? p.created_at.split('T')[0] : '')
       if (dataPedido !== filtroData) return false
@@ -299,35 +370,67 @@ export default function AdminPedidosPage() {
           )}
         </div>
 
-        {/* Filter Buttons */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>
-          <button
-            onClick={() => setFiltro('todos')}
-            style={{
-              padding: '8px 16px', borderRadius: 20,
-              border: `1px solid ${filtro === 'todos' ? COLORS.primary : COLORS.border}`,
-              background: filtro === 'todos' ? COLORS.primary : COLORS.white,
-              color: filtro === 'todos' ? COLORS.white : COLORS.text,
-              fontFamily: SANS, fontSize: 14, cursor: 'pointer', transition: 'all 0.2s'
-            }}
-          >
-            Todos ({stats.total})
-          </button>
-          {STATUS_LIST.map(({ value, label }) => (
+        {/* Botao de exportar e filtro por status lado a lado */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 24 }}>
+          {/* Filter Buttons */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             <button
-              key={value}
-              onClick={() => setFiltro(value)}
+              onClick={() => setFiltro('todos')}
               style={{
                 padding: '8px 16px', borderRadius: 20,
-                border: `1px solid ${filtro === value ? getStatusColor(value) : COLORS.border}`,
-                background: filtro === value ? getStatusColor(value) : COLORS.white,
-                color: filtro === value ? COLORS.white : COLORS.text,
+                border: `1px solid ${filtro === 'todos' ? COLORS.primary : COLORS.border}`,
+                background: filtro === 'todos' ? COLORS.primary : COLORS.white,
+                color: filtro === 'todos' ? COLORS.white : COLORS.text,
                 fontFamily: SANS, fontSize: 14, cursor: 'pointer', transition: 'all 0.2s'
               }}
             >
-              {label} ({stats[value] || 0})
+              Todos ({stats.total})
             </button>
-          ))}
+            {STATUS_LIST.map(({ value, label }) => (
+              <button
+                key={value}
+                onClick={() => setFiltro(value)}
+                style={{
+                  padding: '8px 16px', borderRadius: 20,
+                  border: `1px solid ${filtro === value ? getStatusColor(value) : COLORS.border}`,
+                  background: filtro === value ? getStatusColor(value) : COLORS.white,
+                  color: filtro === value ? COLORS.white : COLORS.text,
+                  fontFamily: SANS, fontSize: 14, cursor: 'pointer', transition: 'all 0.2s'
+                }}
+              >
+                {label} ({stats[value] || 0})
+              </button>
+            ))}
+          </div>
+
+          {/* Botao Exportar */}
+          <button
+            onClick={exportarParaCSV}
+            style={{
+              padding: '10px 24px',
+              borderRadius: 8,
+              border: '1px solid ' + COLORS.primary,
+              background: COLORS.primary,
+              color: COLORS.white,
+              fontFamily: SANS,
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={e => { e.currentTarget.style.opacity = '0.85' }}
+            onMouseLeave={e => { e.currentTarget.style.opacity = '1' }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Exportar Excel ({pedidosFiltrados.length})
+          </button>
         </div>
 
         {/* Loading State */}
@@ -361,7 +464,6 @@ export default function AdminPedidosPage() {
                   }}
                   onClick={() => setPedidoExpandido(expandido ? null : pedido.id)}
                 >
-                  {/* Cabecalho resumido */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12, marginBottom: 12 }}>
                     <div style={{ flex: 1 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
@@ -385,7 +487,6 @@ export default function AdminPedidosPage() {
                     </p>
                   </div>
 
-                  {/* Mini info - sempre visivel */}
                   <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', fontSize: 13, fontFamily: SANS, color: COLORS.textLight }}>
                     <span><strong style={{ color: COLORS.text }}>Cliente:</strong> {pedido.cliente_nome || pedido.nome_cliente || '—'}</span>
                     <span><strong style={{ color: COLORS.text }}>Email:</strong> {pedido.email_cliente || '—'}</span>
@@ -394,10 +495,8 @@ export default function AdminPedidosPage() {
                     </span>
                   </div>
 
-                  {/* Conteudo expandido */}
                   {expandido && (
                     <div style={{ marginTop: 20, borderTop: '1px solid ' + COLORS.border, paddingTop: 20 }}>
-                      {/* Grid de informacoes do cliente e entrega */}
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 16, marginBottom: 20 }}>
                         <div style={{ background: COLORS.lightGray, borderRadius: 8, padding: 14 }}>
                           <p style={{ fontFamily: SANS, fontSize: 11, color: COLORS.textLight, textTransform: 'uppercase', letterSpacing: 1, margin: '0 0 8px', fontWeight: 700 }}>Dados do Cliente</p>
@@ -442,7 +541,6 @@ export default function AdminPedidosPage() {
                         </div>
                       </div>
 
-                      {/* Itens do pedido */}
                       {pedido.itens && (
                         <div style={{ background: COLORS.lightGray, borderRadius: 8, padding: 16, marginBottom: 20 }}>
                           <p style={{ fontFamily: SANS, fontSize: 11, color: COLORS.textLight, textTransform: 'uppercase', letterSpacing: 1, margin: '0 0 10px', fontWeight: 700 }}>
@@ -479,7 +577,6 @@ export default function AdminPedidosPage() {
                         </div>
                       )}
 
-                      {/* Alterar status */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', paddingTop: 12, borderTop: '1px solid ' + COLORS.border }}>
                         <span style={{ fontFamily: SANS, fontSize: 13, color: COLORS.textLight, fontWeight: 600 }}>Alterar status:</span>
                         <select
