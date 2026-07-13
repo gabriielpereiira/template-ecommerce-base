@@ -81,6 +81,13 @@ function formatarTelefone(telefone) {
   return telefone
 }
 
+function hoje() {
+  const d = new Date()
+  const mes = String(d.getMonth() + 1).padStart(2, '0')
+  const dia = String(d.getDate()).padStart(2, '0')
+  return `${d.getFullYear()}-${mes}-${dia}`
+}
+
 export default function AdminPedidosPage() {
   const router = useRouter()
   const [user, setUser] = useState(null)
@@ -90,6 +97,7 @@ export default function AdminPedidosPage() {
   const [filtro, setFiltro] = useState('todos')
   const [atualizando, setAtualizando] = useState(null)
   const [pedidoExpandido, setPedidoExpandido] = useState(null)
+  const [filtroData, setFiltroData] = useState('')
 
   // Estados do modal de confirmacao
   const [confirmModalOpen, setConfirmModalOpen] = useState(false)
@@ -141,10 +149,8 @@ export default function AdminPedidosPage() {
 
   async function handleConfirmarAlteracao() {
     if (!confirmPedidoId || !confirmNovoStatus) return
-
     setConfirmEnviando(true)
     setAtualizando(confirmPedidoId)
-
     try {
       const res = await fetch('/api/pedido/atualizar-status', {
         method: 'POST',
@@ -154,9 +160,7 @@ export default function AdminPedidosPage() {
           novoStatus: confirmNovoStatus
         })
       })
-
       const data = await res.json()
-
       if (data.success) {
         setPedidos(pedidos.map(p =>
           p.id === confirmPedidoId ? { ...p, status: confirmNovoStatus } : p
@@ -168,7 +172,6 @@ export default function AdminPedidosPage() {
       console.error('Erro ao alterar status:', err)
       alert('Erro ao conectar com o servidor. Tente novamente.')
     }
-
     setConfirmEnviando(false)
     setAtualizando(null)
     setConfirmModalOpen(false)
@@ -190,9 +193,16 @@ export default function AdminPedidosPage() {
     )
   }
 
-  const pedidosFiltrados = filtro === 'todos'
-    ? pedidos
-    : pedidos.filter(p => p.status === filtro)
+  const pedidosFiltrados = pedidos.filter(p => {
+    // Filtro por status
+    if (filtro !== 'todos' && p.status !== filtro) return false
+    // Filtro por data
+    if (filtroData) {
+      const dataPedido = p.criado_em ? p.criado_em.split('T')[0] : (p.created_at ? p.created_at.split('T')[0] : '')
+      if (dataPedido !== filtroData) return false
+    }
+    return true
+  })
 
   const stats = {
     total: pedidos.length,
@@ -225,6 +235,68 @@ export default function AdminPedidosPage() {
               <p style={{ fontFamily: SERIF, fontSize: 28, color: getStatusColor(value), margin: 0 }}>{stats[value] || 0}</p>
             </div>
           ))}
+        </div>
+
+        {/* Filtro por data */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+          <label style={{ fontFamily: SANS, fontSize: 14, color: COLORS.text, fontWeight: 600 }}>
+            Filtrar por data:
+          </label>
+          <input
+            type="date"
+            value={filtroData}
+            onChange={(e) => setFiltroData(e.target.value)}
+            style={{
+              padding: '8px 12px',
+              borderRadius: 8,
+              border: '1px solid ' + COLORS.border,
+              fontFamily: SANS,
+              fontSize: 14,
+              color: COLORS.text,
+              background: COLORS.white,
+              outline: 'none'
+            }}
+          />
+          <button
+            onClick={() => setFiltroData(hoje())}
+            style={{
+              padding: '8px 16px',
+              borderRadius: 20,
+              border: '1px solid ' + (filtroData === hoje() ? COLORS.primary : COLORS.border),
+              background: filtroData === hoje() ? COLORS.primary : COLORS.white,
+              color: filtroData === hoje() ? COLORS.white : COLORS.text,
+              fontFamily: SANS,
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+          >
+            Hoje
+          </button>
+          {filtroData && (
+            <button
+              onClick={() => setFiltroData('')}
+              style={{
+                padding: '8px 16px',
+                borderRadius: 20,
+                border: '1px solid ' + COLORS.danger,
+                background: 'transparent',
+                color: COLORS.danger,
+                fontFamily: SANS,
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              Limpar filtro
+            </button>
+          )}
+          {filtroData && (
+            <span style={{ fontFamily: SANS, fontSize: 13, color: COLORS.primary, fontWeight: 600 }}>
+              Pedidos do dia {filtroData.split('-').reverse().join('/')}
+            </span>
+          )}
         </div>
 
         {/* Filter Buttons */}
@@ -335,7 +407,6 @@ export default function AdminPedidosPage() {
                             <div><strong>Telefone:</strong> {formatarTelefone(pedido.cliente_telefone || pedido.telefone_cliente)}</div>
                           </div>
                         </div>
-
                         <div style={{ background: COLORS.lightGray, borderRadius: 8, padding: 14 }}>
                           <p style={{ fontFamily: SANS, fontSize: 11, color: COLORS.textLight, textTransform: 'uppercase', letterSpacing: 1, margin: '0 0 8px', fontWeight: 700 }}>Endereco de Entrega</p>
                           <div style={{ fontFamily: SANS, fontSize: 13, color: COLORS.text, lineHeight: 1.8 }}>
@@ -349,7 +420,6 @@ export default function AdminPedidosPage() {
                             )}
                           </div>
                         </div>
-
                         <div style={{ background: COLORS.lightGray, borderRadius: 8, padding: 14 }}>
                           <p style={{ fontFamily: SANS, fontSize: 11, color: COLORS.textLight, textTransform: 'uppercase', letterSpacing: 1, margin: '0 0 8px', fontWeight: 700 }}>Financeiro</p>
                           <div style={{ fontFamily: SANS, fontSize: 13, color: COLORS.text, lineHeight: 1.8 }}>
@@ -467,13 +537,11 @@ export default function AdminPedidosPage() {
             <p style={{ fontFamily: SANS, fontSize: 14, color: COLORS.textLight, margin: '0 0 24px', lineHeight: 1.5 }}>
               Tem certeza que deseja alterar o status do pedido <strong>#{String(confirmPedidoId || '').slice(0, 8).toUpperCase()}</strong> para <strong style={{ color: getStatusColor(confirmNovoStatus) }}>{STATUS_LABELS[confirmNovoStatus] || confirmNovoStatus}</strong>?
             </p>
-
             {confirmNovoStatus === 'saiu_entrega' && (
               <p style={{ fontFamily: SANS, fontSize: 13, color: COLORS.primary, margin: '0 0 20px', padding: '10px 14px', background: '#FFF8F0', borderRadius: 8, border: '1px solid #E8D9C5', lineHeight: 1.4 }}>
                 Um email de notificacao sera enviado automaticamente para o cliente avisando que o pedido saiu para entrega.
               </p>
             )}
-
             <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
               <button
                 onClick={handleCancelarAlteracao}
