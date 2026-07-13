@@ -35,9 +35,7 @@ export default function CadastroPage() {
     return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`
   }
 
-  const maskCep = (value) => {
-    return value.replace(/\D/g, '').slice(0, 8)
-  }
+  const maskCep = (value) => value.replace(/\D/g, '').slice(0, 8)
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -50,14 +48,7 @@ export default function CadastroPage() {
 
     if (name === 'cep') {
       const digits = maskCep(value)
-      setForm((prev) => ({
-        ...prev,
-        cep: digits,
-        logradouro: '',
-        bairro: '',
-        cidade: '',
-        estado: ''
-      }))
+      setForm((prev) => ({ ...prev, cep: digits, logradouro: '', bairro: '', cidade: '', estado: '' }))
       setCepError('')
       if (digits.length === 8) lookupCep(digits)
       return
@@ -73,13 +64,7 @@ export default function CadastroPage() {
       const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`)
       const data = await res.json()
       if (data && !data.erro) {
-        setForm((prev) => ({
-          ...prev,
-          logradouro: data.logradouro || '',
-          bairro: data.bairro || '',
-          cidade: data.localidade || '',
-          estado: data.uf || ''
-        }))
+        setForm((prev) => ({ ...prev, logradouro: data.logradouro || '', bairro: data.bairro || '', cidade: data.localidade || '', estado: data.uf || '' }))
       } else {
         setCepError('CEP nao encontrado. Verifique e tente novamente.')
       }
@@ -94,20 +79,9 @@ export default function CadastroPage() {
     e.preventDefault()
     setError('')
 
-    if (!form.nome) {
-      setError('Preencha o nome completo.')
-      return
-    }
-
-    if (form.senha.length < 6) {
-      setError('A senha deve ter no minimo 6 caracteres.')
-      return
-    }
-
-    if (form.senha !== form.confirmarSenha) {
-      setError('As senhas nao conferem.')
-      return
-    }
+    if (!form.nome) { setError('Preencha o nome completo.'); return }
+    if (form.senha.length < 6) { setError('A senha deve ter no minimo 6 caracteres.'); return }
+    if (form.senha !== form.confirmarSenha) { setError('As senhas nao conferem.'); return }
 
     setSubmitting(true)
 
@@ -123,8 +97,36 @@ export default function CadastroPage() {
       const userId = authData.user.id
       const telefoneDigits = form.telefone.replace(/\D/g, '')
 
-      // Dados organizados pra salvar
-      const dadosPerfil = {
+      // Tenta salvar via API route (service role key)
+      try {
+        const res = await fetch('/api/criar-perfil', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: userId,
+            nome: form.nome,
+            telefone: telefoneDigits,
+            cep: form.cep,
+            logradouro: form.logradouro,
+            numero: form.numero,
+            complemento: form.complemento,
+            bairro: form.bairro,
+            cidade: form.cidade,
+            estado: form.estado
+          })
+        })
+        const result = await res.json()
+        if (result.success) {
+          console.log('[cadastro] Perfil salvo no banco com sucesso')
+        } else {
+          console.warn('[cadastro] API route falhou:', result.error)
+        }
+      } catch (errApi) {
+        console.warn('[cadastro] Erro ao chamar API route:', errApi)
+      }
+
+      // Salva SEMPRE no localStorage como backup (garantia dupla)
+      localStorage.setItem('dadosPerfilPendentes', JSON.stringify({
         id: userId,
         nome: form.nome,
         telefone: telefoneDigits,
@@ -135,44 +137,7 @@ export default function CadastroPage() {
         bairro: form.bairro,
         cidade: form.cidade,
         estado: form.estado
-      }
-
-      // Tenta salvar via API route (precisa da service_role_key no servidor)
-      let salvouNoBanco = false
-      try {
-        const res = await fetch('/api/criar-perfil', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(dadosPerfil)
-        })
-        const result = await res.json()
-        if (result.success) {
-          salvouNoBanco = true
-          console.log('[cadastro] Perfil salvo no banco com sucesso')
-        } else {
-          console.warn('[cadastro] API route falhou:', result.error)
-        }
-      } catch (errApi) {
-        console.warn('[cadastro] Erro ao chamar API route:', errApi)
-      }
-
-      // Se nao conseguiu salvar no banco (service role key nao configurada),
-      // salva no localStorage pra recuperar depois do login
-      if (!salvouNoBanco) {
-        console.log('[cadastro] Salvando dados no localStorage para recuperar depois do login')
-        localStorage.setItem('dadosPerfilPendentes', JSON.stringify({
-          id: userId,
-          nome: form.nome,
-          telefone: telefoneDigits,
-          cep: form.cep,
-          logradouro: form.logradouro,
-          numero: form.numero,
-          complemento: form.complemento,
-          bairro: form.bairro,
-          cidade: form.cidade,
-          estado: form.estado
-        }))
-      }
+      }))
 
       setSuccess(true)
     } catch (err) {
