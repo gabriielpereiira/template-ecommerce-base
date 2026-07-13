@@ -25,20 +25,35 @@ function formatarPreco(valor) {
 export default function CarrinhoSidebar() {
   const { itens, aberto, setAberto, removerItem, limparCarrinho, subtotal, totalItens } = useCarrinho()
   const { usuario } = useAuth()
+
   const [cep, setCep] = useState('')
   const [freteData, setFreteData] = useState(null)
   const [freteCarregando, setFreteCarregando] = useState(false)
   const [freteErro, setFreteErro] = useState(null)
   const [freteExigido, setFreteExigido] = useState(false)
+
   const [cupomInput, setCupomInput] = useState('')
   const [cupomData, setCupomData] = useState(null)
   const [cupomCarregando, setCupomCarregando] = useState(false)
   const [cupomErro, setCupomErro] = useState(null)
+
   const [finalizando, setFinalizando] = useState(false)
   const [toast, setToast] = useState(null)
+
   const [nomeCliente, setNomeCliente] = useState('')
   const [telefoneCliente, setTelefoneCliente] = useState('')
 
+  // Estados de endereco de entrega
+  const [enderecoExpandido, setEnderecoExpandido] = useState(false)
+  const [logradouro, setLogradouro] = useState('')
+  const [numero, setNumero] = useState('')
+  const [complemento, setComplemento] = useState('')
+  const [bairro, setBairro] = useState('')
+  const [cidade, setCidade] = useState('')
+  const [estado, setEstado] = useState('')
+  const [cepLoading, setCepLoading] = useState(false)
+
+  // Carrega dados do perfil quando abre a sidebar
   useEffect(() => {
     let active = true
     async function carregarDados() {
@@ -46,7 +61,7 @@ export default function CarrinhoSidebar() {
         try {
           const { data: profile } = await supabase
             .from('profiles')
-            .select('nome, telefone, cep')
+            .select('nome, telefone, cep, logradouro, numero, complemento, bairro, cidade, estado')
             .eq('id', usuario.id)
             .single()
 
@@ -60,6 +75,12 @@ export default function CarrinhoSidebar() {
               setCep(formatarCep(digits))
               if (digits.length === 8) handleBuscarFrete(digits)
             }
+            if (profile.logradouro) setLogradouro(profile.logradouro)
+            if (profile.numero) setNumero(profile.numero)
+            if (profile.complemento) setComplemento(profile.complemento)
+            if (profile.bairro) setBairro(profile.bairro)
+            if (profile.cidade) setCidade(profile.cidade)
+            if (profile.estado) setEstado(profile.estado)
           }
         } catch (e) {
           // Profile ainda nao existe ou erro, tranquilo
@@ -97,6 +118,34 @@ export default function CarrinhoSidebar() {
     setFreteData(null)
     setFreteErro(null)
     setFreteExigido(false)
+
+    // Se completou 8 digitos, busca o endereco automaticamente
+    if (digits.length === 8) {
+      buscarEnderecoPorCep(digits)
+    } else {
+      setLogradouro('')
+      setBairro('')
+      setCidade('')
+      setEstado('')
+    }
+  }
+
+  async function buscarEnderecoPorCep(cepDigits) {
+    setCepLoading(true)
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${cepDigits}/json/`)
+      const data = await res.json()
+      if (data && !data.erro) {
+        setLogradouro(data.logradouro || '')
+        setBairro(data.bairro || '')
+        setCidade(data.localidade || '')
+        setEstado(data.uf || '')
+      }
+    } catch {
+      // Silencio - erro ao buscar CEP
+    } finally {
+      setCepLoading(false)
+    }
   }
 
   async function handleBuscarFrete(cepParam) {
@@ -163,7 +212,7 @@ export default function CarrinhoSidebar() {
 
   function handleFinalizar() {
     if (!usuario) { setToast('Faca login para finalizar o pedido'); return }
-    if (itens.length === 0) { setToast('Sua sacola está vazia'); return }
+    if (itens.length === 0) { setToast('Sua sacola esta vazia'); return }
     if (!nomeCliente.trim()) { setToast('Informe seu nome para finalizar'); return }
     if (!telefoneCliente.trim()) { setToast('Informe seu telefone para finalizar'); return }
     if (!freteData) {
@@ -177,6 +226,9 @@ export default function CarrinhoSidebar() {
       try {
         const nome = nomeCliente.trim()
         const telefone = telefoneCliente.replace(/\D/g, '')
+
+        // Monta endereco completo para entrega
+        const enderecoCompleto = `${logradouro}, ${numero}${complemento ? ' - ' + complemento : ''}, ${bairro ? bairro + ', ' : ''}${cidade} - ${estado}`.replace(/, ,/g, ',').replace(/^, /, '').replace(/, $/, '')
 
         const orderPayload = {
           user_id: usuario.id,
@@ -192,7 +244,8 @@ export default function CarrinhoSidebar() {
           desconto,
           total: subtotal + freteData.valor_frete - desconto,
           forma_entrega: 'entrega',
-          endereco_entrega: freteData.endereco || '',
+          endereco_entrega: enderecoCompleto,
+          bairro_entrega: bairro || '',
           valor_frete: freteData.valor_frete || 0,
         }
 
@@ -201,6 +254,7 @@ export default function CarrinhoSidebar() {
           body: JSON.stringify(orderPayload),
         })
         const saveResult = await saveRes.json()
+
         if (!saveResult.success) {
           setToast(saveResult.erro || 'Erro ao salvar pedido')
           setFinalizando(false)
@@ -208,12 +262,13 @@ export default function CarrinhoSidebar() {
         }
 
         const pedido_id = saveResult.data.pedido_id
+
         const payload = {
           itens: itens.map(i => ({ id: i.product_id, nome: i.nome, descricao: i.descricao || '', quantidade: i.quantidade, preco: i.preco })),
           cliente_nome: nome,
           cliente_email: usuario?.email || '',
           cliente_telefone: telefone,
-          endereco_entrega: freteData.endereco || '',
+          endereco_entrega: enderecoCompleto,
           valor_frete: freteData.valor_frete || 0,
           cupom: cupomData ? { codigo: cupomData.codigo, tipo: cupomData.tipo, valor: cupomData.valor } : null,
           pedido_id,
@@ -224,6 +279,7 @@ export default function CarrinhoSidebar() {
           body: JSON.stringify(payload),
         })
         const result = await res.json()
+
         if (result?.success && result.data?.init_point) {
           window.location.href = result.data.init_point
         } else {
@@ -238,8 +294,11 @@ export default function CarrinhoSidebar() {
   }
 
   const desconto = cupomData
-    ? cupomData.tipo === 'percentual' ? (subtotal + (freteData?.valor_frete || 0)) * (cupomData.valor / 100) : cupomData.valor
+    ? cupomData.tipo === 'percentual'
+      ? (subtotal + (freteData?.valor_frete || 0)) * (cupomData.valor / 100)
+      : cupomData.valor
     : 0
+
   const total = subtotal + (freteData?.valor_frete || 0) - desconto
 
   if (!aberto) return null
@@ -336,6 +395,108 @@ export default function CarrinhoSidebar() {
               />
             </div>
           </div>
+
+          {/* Endereco de entrega - colapsavel */}
+          <div style={{ marginBottom: '12px' }}>
+            <button
+              onClick={() => setEnderecoExpandido(!enderecoExpandido)}
+              style={{
+                background: 'none', border: 'none', padding: 0,
+                cursor: 'pointer', display: 'flex', alignItems: 'center',
+                gap: '6px', fontFamily: SANS, fontSize: '13px',
+                fontWeight: 600, color: COLORS.dark,
+                marginBottom: enderecoExpandido ? '8px' : 0,
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                style={{ transform: enderecoExpandido ? 'rotate(90deg)' : 'rotate(0deg)',
+                  transition: 'transform 0.2s' }}
+              >
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+              Endereco de entrega
+              {!enderecoExpandido && logradouro && (
+                <span style={{ fontSize: '12px', color: COLORS.textSecondary, fontWeight: 400, marginLeft: '4px' }}>
+                  - {logradouro}, {numero || 'S/N'}
+                </span>
+              )}
+            </button>
+
+            {enderecoExpandido && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input type="text" value={logradouro}
+                    onChange={(e) => setLogradouro(e.target.value)}
+                    placeholder="Logradouro" style={{
+                      flex: 1, padding: '10px 14px', borderRadius: '8px',
+                      border: '1px solid ' + COLORS.border, fontSize: '14px',
+                      fontFamily: SANS, color: COLORS.dark, outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                  <input type="text" value={numero}
+                    onChange={(e) => setNumero(e.target.value)}
+                    placeholder="Nro" style={{
+                      width: '80px', padding: '10px 14px', borderRadius: '8px',
+                      border: '1px solid ' + COLORS.border, fontSize: '14px',
+                      fontFamily: SANS, color: COLORS.dark, outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+                <input type="text" value={complemento}
+                  onChange={(e) => setComplemento(e.target.value)}
+                  placeholder="Complemento (opcional)" style={{
+                    width: '100%', padding: '10px 14px', borderRadius: '8px',
+                    border: '1px solid ' + COLORS.border, fontSize: '14px',
+                    fontFamily: SANS, color: COLORS.dark, outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+                <input type="text" value={bairro}
+                  onChange={(e) => setBairro(e.target.value)}
+                  placeholder="Bairro" style={{
+                    width: '100%', padding: '10px 14px', borderRadius: '8px',
+                    border: '1px solid ' + COLORS.border, fontSize: '14px',
+                    fontFamily: SANS, color: COLORS.dark, outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input type="text" value={cidade}
+                    onChange={(e) => setCidade(e.target.value)}
+                    placeholder="Cidade" style={{
+                      flex: 1, padding: '10px 14px', borderRadius: '8px',
+                      border: '1px solid ' + COLORS.border, fontSize: '14px',
+                      fontFamily: SANS, color: COLORS.dark, outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                  <input type="text" value={estado}
+                    onChange={(e) => setEstado(e.target.value.toUpperCase())}
+                    placeholder="UF" maxLength={2} style={{
+                      width: '56px', padding: '10px 14px', borderRadius: '8px',
+                      border: '1px solid ' + COLORS.border, fontSize: '14px',
+                      fontFamily: SANS, color: COLORS.dark, outline: 'none',
+                      boxSizing: 'border-box', textTransform: 'uppercase',
+                    }}
+                  />
+                </div>
+                {cepLoading && (
+                  <p style={{ margin: '2px 0', fontSize: '12px', color: COLORS.textSecondary }}>
+                    Buscando endereco pelo CEP...
+                  </p>
+                )}
+                <p style={{ margin: '2px 0', fontSize: '11px', color: COLORS.textSecondary }}>
+                  Endereco preenchido automaticamente pelo CEP. Voce pode editar se precisar entregar em outro local.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Divider sutil */}
+          <div style={{ height: '1px', background: COLORS.border, margin: '0 0 16px' }} />
 
           {/* Frete */}
           <div style={{ marginBottom: '16px' }}>
