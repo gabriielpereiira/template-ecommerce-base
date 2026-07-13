@@ -15,7 +15,6 @@ const COLORS = {
   border: '#E8E0D8',
   textOnDark: '#F0EBE4'
 }
-
 const SERIF = 'Georgia, "Times New Roman", serif'
 const SANS = 'Inter, Arial, sans-serif'
 
@@ -35,7 +34,6 @@ const inputStyle = {
 
 function CardAnimado({ children, atraso = 1, style }) {
   const [ref, visivel] = useAnimacaoScroll({ threshold: 0.1 })
-
   return (
     <div
       ref={ref}
@@ -53,8 +51,7 @@ function CardAnimado({ children, atraso = 1, style }) {
 
 export default function PerfilPage() {
   const router = useRouter()
-  const { usuario } = useAuth()
-
+  const { usuario, perfil } = useAuth()
   const [formData, setFormData] = useState({
     nome: '',
     telefone: '',
@@ -86,17 +83,19 @@ export default function PerfilPage() {
 
     const fetchProfile = async () => {
       try {
+        // Tenta buscar do banco
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', usuario.id)
-          .single()
+          .maybeSingle()
 
-        if (error && error.code !== 'PGRST116') {
+        if (error) {
           console.error('Erro ao buscar perfil:', error)
         }
 
         if (data) {
+          // Achou no banco, usa os dados
           setFormData({
             nome: data.nome || '',
             telefone: data.telefone || '',
@@ -108,6 +107,19 @@ export default function PerfilPage() {
             cidade: data.cidade || '',
             estado: data.estado || ''
           })
+        } else if (perfil) {
+          // Nao achou no banco, usa o perfil do AuthContext (veio do localStorage)
+          setFormData({
+            nome: perfil.nome || '',
+            telefone: perfil.telefone || '',
+            cep: perfil.cep || '',
+            logradouro: perfil.logradouro || '',
+            numero: perfil.numero || '',
+            complemento: perfil.complemento || '',
+            bairro: perfil.bairro || '',
+            cidade: perfil.cidade || '',
+            estado: perfil.estado || ''
+          })
         }
       } catch (err) {
         console.error('Erro ao buscar perfil:', err)
@@ -117,7 +129,7 @@ export default function PerfilPage() {
     }
 
     fetchProfile()
-  }, [usuario, router])
+  }, [usuario, router, perfil])
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -151,6 +163,7 @@ export default function PerfilPage() {
         setMensagem({ tipo: 'erro', texto: 'Erro ao salvar perfil. Tente novamente.' })
       } else {
         setMensagem({ tipo: 'sucesso', texto: 'Perfil atualizado com sucesso!' })
+        localStorage.removeItem('dadosPerfilPendentes')
       }
     } catch (err) {
       console.error('Erro ao salvar perfil:', err)
@@ -163,24 +176,19 @@ export default function PerfilPage() {
 
   const handleAlterarSenha = async () => {
     setErroSenha('')
-
     if (!novaSenha || novaSenha.length < 6) {
       setErroSenha('A nova senha deve ter no minimo 6 caracteres.')
       return
     }
-
     if (novaSenha !== confirmarNovaSenha) {
       setErroSenha('As senhas nao conferem.')
       return
     }
-
     setAlterandoSenha(true)
-
     try {
       const { error } = await supabase.auth.updateUser({
         password: novaSenha
       })
-
       if (error) {
         setErroSenha(error.message || 'Erro ao alterar senha.')
       } else {
@@ -199,8 +207,9 @@ export default function PerfilPage() {
   }
 
   const getInitial = () => {
-    if (!usuario?.email) return '?'
-    return usuario.email.charAt(0).toUpperCase()
+    if (formData.nome) return formData.nome.charAt(0).toUpperCase()
+    if (usuario?.email) return usuario.email.charAt(0).toUpperCase()
+    return '?'
   }
 
   const handleFocus = e => { e.currentTarget.style.borderColor = COLORS.gold }
@@ -220,7 +229,6 @@ export default function PerfilPage() {
   return (
     <div style={{ background: COLORS.bg, minHeight: '100vh', fontFamily: SANS }}>
       <Header />
-
       <div style={{ maxWidth: '800px', margin: '0 auto', padding: '60px 24px' }}>
         {/* Page title */}
         <div className="animar-fade-up animar-atraso-1" style={{ marginBottom: '40px' }}>
@@ -295,7 +303,6 @@ export default function PerfilPage() {
           <h2 style={{ fontFamily: SERIF, fontSize: '20px', color: COLORS.dark, margin: '0 0 24px 0', fontWeight: 700 }}>
             Endereco
           </h2>
-
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '13px', color: COLORS.textSecondary, fontWeight: 600, marginBottom: '6px' }}>
@@ -498,7 +505,6 @@ export default function PerfilPage() {
             <h3 style={{ fontFamily: SERIF, fontSize: '20px', color: COLORS.dark, margin: '0 0 24px 0', fontWeight: 700 }}>
               Alterar senha
             </h3>
-
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '13px', color: COLORS.textSecondary, fontWeight: 600, marginBottom: '6px' }}>
@@ -514,7 +520,6 @@ export default function PerfilPage() {
                   placeholder="Minimo 6 caracteres"
                 />
               </div>
-
               <div>
                 <label style={{ display: 'block', fontSize: '13px', color: COLORS.textSecondary, fontWeight: 600, marginBottom: '6px' }}>
                   Confirmar nova senha
@@ -529,7 +534,6 @@ export default function PerfilPage() {
                   placeholder="Repita a nova senha"
                 />
               </div>
-
               {erroSenha && (
                 <div style={{
                   background: '#f8e1dd', color: '#8a2b1f',
@@ -539,7 +543,6 @@ export default function PerfilPage() {
                   {erroSenha}
                 </div>
               )}
-
               <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '8px' }}>
                 <button
                   onClick={() => {
