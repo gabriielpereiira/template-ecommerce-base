@@ -40,7 +40,7 @@ export default function Header() {
   const userInitial = usuario?.email?.charAt(0)?.toUpperCase() || '?'
 
   const navLinks = [
-    { href: '/cardápio', label: 'Cardápio', icon: 'c' },
+    { href: '/cardapio', label: 'Cardápio', icon: 'c' },
     ...(usuario ? [{ href: '/pedidos', label: 'Meus Pedidos', icon: 'p' }] : []),
     ...(isAdmin ? [{ href: '/admin/pedidos', label: 'Admin', icon: 'a' }] : []),
   ]
