@@ -11,28 +11,33 @@ export async function POST(request) {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-    if (serviceRoleKey) {
-      // Modo admin: usa service role pra bypassar RLS
-      const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey)
-      const { data, error } = await supabaseAdmin
-        .from('profiles')
-        .upsert({
-          ...dados,
-          updated_at: new Date().toISOString()
-        })
-
-      if (error) {
-        return Response.json({ success: false, error: error.message }, { status: 400 })
-      }
-
-      return Response.json({ success: true, data })
-    } else {
-      // Service role key nao configurada
-      return Response.json({
-        success: false,
-        error: 'SUPABASE_SERVICE_ROLE_KEY nao configurada'
-      }, { status: 500 })
+    if (!serviceRoleKey) {
+      return Response.json({ success: false, error: 'SUPABASE_SERVICE_ROLE_KEY nao configurada' }, { status: 500 })
     }
+
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey)
+
+    const { data, error } = await supabaseAdmin
+      .from('profiles')
+      .upsert({
+        id: dados.id,
+        nome: dados.nome || '',
+        telefone: dados.telefone || '',
+        cep: dados.cep || '',
+        logradouro: dados.logradouro || '',
+        numero: dados.numero || '',
+        complemento: dados.complemento || '',
+        bairro: dados.bairro || '',
+        cidade: dados.cidade || '',
+        estado: dados.estado || '',
+        updated_at: new Date().toISOString()
+      })
+
+    if (error) {
+      return Response.json({ success: false, error: error.message }, { status: 400 })
+    }
+
+    return Response.json({ success: true, data })
   } catch (err) {
     return Response.json({ success: false, error: err.message }, { status: 500 })
   }
