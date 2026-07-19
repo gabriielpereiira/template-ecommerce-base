@@ -137,7 +137,6 @@ export default function CarrinhoSidebar() {
 
   return (
     <>
-      {/* Botao flutuante */}
       <button
         onClick={() => setAberto(true)}
         style={{
@@ -167,7 +166,6 @@ export default function CarrinhoSidebar() {
         )}
       </button>
 
-      {/* Overlay */}
       {aberto && (
         <div style={{
           position: 'fixed', inset: 0, zIndex: 9998,
@@ -177,7 +175,6 @@ export default function CarrinhoSidebar() {
         }} onClick={() => setAberto(false)} />
       )}
 
-      {/* Sidebar */}
       <div style={{
         position: 'fixed', top: 0, right: aberto ? 0 : '-100%',
         width: '420px', maxWidth: '100vw', height: '100vh',
@@ -186,7 +183,6 @@ export default function CarrinhoSidebar() {
         display: 'flex', flexDirection: 'column',
         transition: 'right 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)'
       }}>
-        {/* Header da sidebar */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '20px 24px', borderBottom: '1px solid ' + COLORS.border
@@ -196,12 +192,12 @@ export default function CarrinhoSidebar() {
           </h2>
           <button onClick={() => setAberto(false)} style={{
             background: 'none', border: 'none', cursor: 'pointer',
-color: COLORS.textSecondary, fontSize: '24px', padding: '4px'          }}>
+            color: COLORS.textSecondary, fontSize: '24px', padding: '4px'
+          }}>
             &times;
           </button>
         </div>
 
-        {/* Itens */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
           {itens.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px 0', color: COLORS.textSecondary }}>
@@ -235,10 +231,8 @@ color: COLORS.textSecondary, fontSize: '24px', padding: '4px'          }}>
           )}
         </div>
 
-        {/* Footer da sidebar */}
         {itens.length > 0 && (
           <div style={{ padding: '24px', borderTop: '1px solid ' + COLORS.border }}>
-            {/* CEP */}
             <div style={{ marginBottom: 16 }}>
               <label style={{ display: 'block', fontSize: '12px', color: COLORS.textSecondary, fontWeight: 600, marginBottom: 6, fontFamily: SANS }}>
                 Calcular frete (opcional)
@@ -267,7 +261,6 @@ color: COLORS.textSecondary, fontSize: '24px', padding: '4px'          }}>
               </div>
             </div>
 
-            {/* Cupom */}
             <div style={{ marginBottom: 16 }}>
               <label style={{ display: 'block', fontSize: '12px', color: COLORS.textSecondary, fontWeight: 600, marginBottom: 6, fontFamily: SANS }}>
                 Cupom de desconto
@@ -303,7 +296,6 @@ color: COLORS.textSecondary, fontSize: '24px', padding: '4px'          }}>
               )}
             </div>
 
-            {/* Resumo */}
             <div style={{ marginBottom: 16, fontFamily: SANS }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: '14px', color: COLORS.textSecondary }}>
                 <span>Subtotal</span><span>{formatarPreco(total)}</span>
@@ -323,10 +315,9 @@ color: COLORS.textSecondary, fontSize: '24px', padding: '4px'          }}>
               </div>
             </div>
 
-            {/* Botao finalizar */}
             <button
               onClick={handleFinalizar}
-              disabled={finalizando || !freteData}
+              disabled={finalizando}
               className={`btn btn-primary${finalizando ? ' btn-loading' : ''}`}
               style={{ width: '100%' }}
             >
@@ -336,7 +327,6 @@ color: COLORS.textSecondary, fontSize: '24px', padding: '4px'          }}>
         )}
       </div>
 
-      {/* Toast */}
       {toast && (
         <div style={{
           position: 'fixed', bottom: 100, left: '50%', transform: 'translateX(-50%)',

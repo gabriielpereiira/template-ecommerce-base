@@ -2,10 +2,9 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
-import HeaderUnificado from '@/components/HeaderUnificado'
+import Header from '@/components/Header'
 import { storeConfig } from '@/config/store'
 import { theme } from '@/theme'
-import { formatarPreco, formatarData, formatarTelefone, getStatusLabel, getStatusColor } from '@/lib/utils'
 
 const COLORS = theme.colors
 const SERIF = theme.fonts.serif
@@ -20,17 +19,23 @@ const STATUS_LABELS = {
   entregue: 'Entregue',
   cancelado: 'Cancelado'
 }
-const STATUS_LIST = storeConfig.pedido.orderStatuses.map(status => ({
-  value: status,
-  label: STATUS_LABELS[status] || status
-}))
-const emailsAdmin = storeConfig.admin.adminEmails
 
-function hoje() {
-  const d = new Date()
-  const mes = String(d.getMonth() + 1).padStart(2, '0')
-  const dia = String(d.getDate()).padStart(2, '0')
-  return `${d.getFullYear()}-${mes}-${dia}`
+function formatarPreco(valor) {
+  if (valor == null) return 'R$ 0,00'
+  return `R$ ${Number(valor).toFixed(2).replace('.', ',')}`
+}
+
+function getStatusColor(status) {
+  const colors = {
+    pendente: '#F59E0B',
+    confirmado: '#3B82F6',
+    preparando: '#A78BFA',
+    pronto: '#10B981',
+    saiu_entrega: '#FF6B6B',
+    entregue: '#059669',
+    cancelado: '#EF4444'
+  }
+  return colors[status] || '#9CA3AF'
 }
 
 export default function AdminPedidosPage() {
@@ -38,52 +43,43 @@ export default function AdminPedidosPage() {
   const [user, setUser] = useState(null)
   const [pedidos, setPedidos] = useState([])
   const [loading, setLoading] = useState(true)
-  const [adminVerificado, setAdminVerificado] = useState(false)
-  const [filtro, setFiltro] = useState('todos')
-  const [atualizando, setAtualizando] = useState(null)
-  const [pedidoExpandido, setPedidoExpandido] = useState(null)
-  const [filtroData, setFiltroData] = useState('')
-  const [confirmModalOpen, setConfirmModalOpen] = useState(false)
+  const [filtroStatus, setFiltroStatus] = useState('todos')
+
   const [confirmPedidoId, setConfirmPedidoId] = useState(null)
   const [confirmNovoStatus, setConfirmNovoStatus] = useState(null)
   const [confirmEnviando, setConfirmEnviando] = useState(false)
+  const [atualizando, setAtualizando] = useState(null)
 
   useEffect(() => {
-    async function verificarAdmin() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user || !emailsAdmin.includes(user.email)) {
-        router.push('/login')
+    supabase.auth.getUser().then(({ data }) => {
+      const email = data?.user?.email
+      const admins = storeConfig.admin?.adminEmails || []
+      if (!email || !admins.includes(email)) {
+        router.push('/')
         return
       }
-      setUser(user)
-      setAdminVerificado(true)
-    }
-    verificarAdmin()
-  }, [router])
+      setUser(data.user)
+      carregarPedidos()
+    })
+  }, [])
 
-  useEffect(() => {
-    if (!adminVerificado) return
-    async function carregarPedidos() {
-      setLoading(true)
-      const { data, error } = await supabase
+  async function carregarPedidos() {
+    try {
+      const { data } = await supabase
         .from('pedidos')
         .select('*')
         .order('criado_em', { ascending: false })
-      if (error) {
-        console.error('Erro ao carregar pedidos:', error)
-      } else {
-        setPedidos(data || [])
-      }
+      setPedidos(data || [])
+    } catch (err) {
+      console.error(err)
+    } finally {
       setLoading(false)
     }
-    carregarPedidos()
-  }, [adminVerificado])
-
-  function handleSolicitarAlteracao(pedidoId, novoStatus) {
-    setConfirmPedidoId(pedidoId)
-    setConfirmNovoStatus(novoStatus)
-    setConfirmModalOpen(true)
   }
+
+  const pedidosFiltrados = filtroStatus === 'todos'
+    ? pedidos
+    : pedidos.filter(p => p.status === filtroStatus)
 
   async function handleConfirmarAlteracao() {
     if (!confirmPedidoId || !confirmNovoStatus) return
@@ -98,397 +94,229 @@ export default function AdminPedidosPage() {
           novoStatus: confirmNovoStatus
         })
       })
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        alert(err.error || 'Erro ao atualizar status.')
-        return
+      const data = await res.json()
+      if (data.success) {
+        setPedidos(pedidos.map(p =>
+          p.id === confirmPedidoId ? { ...p, status: confirmNovoStatus } : p
+        ))
+      } else {
+        alert('Erro ao atualizar status: ' + (data.error || 'Erro desconhecido'))
       }
-      setPedidos(prev => prev.map(p =>
-        p.id === confirmPedidoId ? { ...p, status: confirmNovoStatus } : p
-      ))
-    } catch {
-      alert('Erro ao conectar com o servidor. Tente novamente.')
+    } catch (err) {
+      console.error('Erro ao alterar status:', err)
     } finally {
       setConfirmEnviando(false)
       setAtualizando(null)
-      setConfirmModalOpen(false)
       setConfirmPedidoId(null)
       setConfirmNovoStatus(null)
     }
   }
 
-  function handleCancelarAlteracao() {
-    setConfirmModalOpen(false)
-    setConfirmPedidoId(null)
-    setConfirmNovoStatus(null)
-  }
-
-  function exportarParaCSV() {
-    const dados = pedidosFiltrados
-    if (dados.length === 0) {
-      alert('Nenhum pedido para exportar.')
-      return
-    }
-    const linhas = []
-    linhas.push([
-      'Pedido', 'Data', 'Cliente', 'Telefone', 'Email', 'Status', 'Itens',
-      'Cupom', 'Subtotal', 'Frete', 'Desconto', 'Total', 'Forma Entrega',
-      'Pagamento', 'Endereco', 'Bairro'
-    ].join(';'))
-    for (const p of dados) {
-      const itensStr = Array.isArray(p.itens)
-        ? p.itens.map(i => `${i.quantidade || i.quantity || 1}x ${i.nome || i.title}`).join(' | ')
-        : (p.itens || '')
-      const cupomStr = p.cupom_aplicado
-        ? (typeof p.cupom_aplicado === 'object' ? p.cupom_aplicado.codigo : p.cupom_aplicado)
-        : ''
-      const linha = [
-        `#${String(p.id).slice(0, 8).toUpperCase()}`,
-        formatarData(p.criado_em || p.created_at),
-        p.cliente_nome || p.nome_cliente || '',
-        p.cliente_telefone || p.telefone_cliente || '',
-        p.email_cliente || '',
-        STATUS_LABELS[p.status] || p.status,
-        `"${(itensStr || '').replace(/"/g, '""')}"`,
-        cupomStr,
-        Number(p.subtotal || 0).toFixed(2).replace('.', ','),
-        Number(p.valor_frete || 0).toFixed(2).replace('.', ','),
-        Number(p.desconto || 0).toFixed(2).replace('.', ','),
-        Number(p.total || 0).toFixed(2).replace('.', ','),
-        p.forma_entrega || '',
-        p.pagamento_status || '',
-        `"${(p.endereco_entrega || '').replace(/"/g, '""')}"`,
-        p.bairro_entrega || ''
-      ]
-      linhas.push(linha.join(';'))
-    }
-    const csvString = '\uFEFF' + linhas.join('\n')
-    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    const dataStr = new Date().toISOString().split('T')[0]
-    link.setAttribute('download', `pedidos-${dataStr}.csv`)
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    URL.revokeObjectURL(url)
-  }
-
-  if (!adminVerificado) {
+  if (!user) {
     return (
-      <div style={{ minHeight: '100vh', background: COLORS.background, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <p style={{ fontFamily: SANS, color: COLORS.textLight, fontSize: 18 }}>Verificando permissoes...</p>
+      <div style={{ minHeight: '100vh', background: COLORS.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <p style={{ fontFamily: SANS, color: COLORS.textSecondary }}>Verificando acesso...</p>
       </div>
     )
   }
 
-  const pedidosFiltrados = pedidos.filter(p => {
-    if (filtro !== 'todos' && p.status !== filtro) return false
-    if (filtroData) {
-      const dataPedido = p.criado_em ? p.criado_em.split('T')[0] : (p.created_at ? p.created_at.split('T')[0] : '')
-      if (dataPedido !== filtroData) return false
-    }
-    return true
-  })
-
-  const stats = {
-    total: pedidos.length,
-    pendente: pedidos.filter(p => p.status === 'pendente').length,
-    confirmado: pedidos.filter(p => p.status === 'confirmado').length,
-    preparando: pedidos.filter(p => p.status === 'preparando').length,
-    pronto: pedidos.filter(p => p.status === 'pronto').length,
-    saiu_entrega: pedidos.filter(p => p.status === 'saiu_entrega').length,
-    entregue: pedidos.filter(p => p.status === 'entregue').length,
-    cancelado: pedidos.filter(p => p.status === 'cancelado').length
-  }
-
-  function getStatusColorLocal(status) {
-    const colors = {
-      pendente: COLORS.warning,
-      confirmado: COLORS.info,
-      preparando: COLORS.secondary,
-      pronto: COLORS.accent,
-      saiu_entrega: COLORS.primary,
-      entregue: COLORS.success,
-      cancelado: COLORS.danger
-    }
-    return colors[status] || COLORS.darkGray
-  }
-
   return (
-    <div style={{ background: COLORS.background, minHeight: '100vh', fontFamily: SANS }}>
-      <HeaderUnificado />
+    <div style={{ minHeight: '100vh', background: COLORS.bg }}>
+      <Header variante="completo" />
 
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
-        <h1 style={{ fontFamily: SERIF, fontSize: '28px', color: COLORS.text, marginBottom: 24 }}>
-          Admin — Pedidos
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 20px' }}>
+        <h1 style={{ fontFamily: SERIF, fontSize: 32, color: COLORS.dark, marginBottom: 24 }}>
+          Admin - Pedidos
         </h1>
 
-        {/* Stats cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 16, marginBottom: 30 }}>
-          <div style={{ background: COLORS.white, borderRadius: 12, padding: 20, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-            <p style={{ fontFamily: SANS, fontSize: 13, color: COLORS.textLight, margin: 0, marginBottom: 8 }}>Total</p>
-            <p style={{ fontFamily: SERIF, fontSize: 28, color: COLORS.text, margin: 0 }}>{stats.total}</p>
-          </div>
-          {STATUS_LIST.map(({ value, label }) => (
-            <div key={value} style={{
-              background: COLORS.white, borderRadius: 12, padding: 20,
-              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-              borderTop: `3px solid ${getStatusColorLocal(value)}`
-            }}>
-              <p style={{ fontFamily: SANS, fontSize: 13, color: COLORS.textLight, margin: 0, marginBottom: 8 }}>{label}</p>
-              <p style={{ fontFamily: SERIF, fontSize: 28, color: getStatusColorLocal(value), margin: 0 }}>{stats[value] || 0}</p>
-            </div>
+        {/* Filtros */}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 24 }}>
+          {['todos', 'pendente', 'confirmado', 'preparando', 'pronto', 'saiu_entrega', 'entregue', 'cancelado'].map(status => (
+            <button
+              key={status}
+              onClick={() => setFiltroStatus(status)}
+              style={{
+                padding: '8px 16px', borderRadius: 999,
+                border: 'none', cursor: 'pointer',
+                background: filtroStatus === status ? COLORS.coral : COLORS.white,
+                color: filtroStatus === status ? COLORS.white : COLORS.textSecondary,
+                fontWeight: 600, fontSize: 13, fontFamily: SANS,
+                border: filtroStatus === status ? 'none' : '1px solid ' + COLORS.border
+              }}
+            >
+              {status === 'todos' ? 'Todos' : STATUS_LABELS[status]}
+            </button>
           ))}
         </div>
 
-        {/* Filtro data */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
-          <label style={{ fontFamily: SANS, fontSize: 14, color: COLORS.text, fontWeight: 600 }}>Filtrar por data:</label>
-          <input type="date" value={filtroData} onChange={(e) => setFiltroData(e.target.value)}
-            style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid ' + COLORS.border, fontFamily: SANS, fontSize: 14, color: COLORS.text, background: COLORS.white, outline: 'none' }} />
-          <button onClick={() => setFiltroData(hoje())}
-            style={{ padding: '8px 16px', borderRadius: 20, border: '1px solid ' + COLORS.primary, background: COLORS.primary, color: COLORS.white, fontFamily: SANS, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-            Hoje
-          </button>
-          {filtroData && (
-            <button onClick={() => setFiltroData('')}
-              style={{ padding: '8px 16px', borderRadius: 20, border: '1px solid ' + COLORS.danger, background: 'transparent', color: COLORS.danger, fontFamily: SANS, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-              Limpar filtro
-            </button>
-          )}
-        </div>
-
-        {/* Filtro status + export */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 24 }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            <button onClick={() => setFiltro('todos')}
-              style={{
-                padding: '8px 16px', borderRadius: 20, border: 'none',
-                background: filtro === 'todos' ? COLORS.primary : COLORS.lightGray,
-                color: filtro === 'todos' ? COLORS.white : COLORS.textLight,
-                fontFamily: SANS, fontSize: 13, fontWeight: 600, cursor: 'pointer'
-              }}>
-              Todos ({stats.total})
-            </button>
-            {STATUS_LIST.map(({ value, label }) => (
-              <button key={value} onClick={() => setFiltro(value)}
-                style={{
-                  padding: '8px 16px', borderRadius: 20, border: 'none',
-                  background: filtro === value ? getStatusColorLocal(value) : COLORS.lightGray,
-                  color: filtro === value ? COLORS.white : COLORS.textLight,
-                  fontFamily: SANS, fontSize: 13, fontWeight: 600, cursor: 'pointer'
-                }}>
-                {label} ({stats[value] || 0})
-              </button>
-            ))}
-          </div>
-          <button onClick={exportarParaCSV}
-            style={{
-              padding: '10px 24px', borderRadius: 8, border: '1px solid ' + COLORS.primary,
-              background: COLORS.primary, color: COLORS.white, fontFamily: SANS,
-              fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8
-            }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
-            </svg>
-            Exportar Excel ({pedidosFiltrados.length})
-          </button>
-        </div>
-
-        {/* Loading */}
-        {loading && (
-          <div style={{ textAlign: 'center', padding: 60 }}>
-            <p style={{ fontFamily: SANS, color: COLORS.textLight, fontSize: 18 }}>Carregando pedidos...</p>
-          </div>
-        )}
-
-        {/* Vazio */}
-        {!loading && pedidosFiltrados.length === 0 && (
-          <div style={{ textAlign: 'center', padding: 60, background: COLORS.white, borderRadius: 12 }}>
-            <p style={{ fontFamily: SANS, color: COLORS.textLight, fontSize: 18 }}>Nenhum pedido encontrado.</p>
-          </div>
-        )}
-
         {/* Lista */}
-        {!loading && pedidosFiltrados.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {pedidosFiltrados.map((pedido) => {
-              const expandido = pedidoExpandido === pedido.id
-              return (
-                <div key={pedido.id}
-                  style={{
-                    background: COLORS.white, borderRadius: 12, padding: 24,
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.08)', cursor: 'pointer',
-                    borderLeft: `4px solid ${getStatusColorLocal(pedido.status)}`
-                  }}
-                  onClick={() => setPedidoExpandido(expandido ? null : pedido.id)}>
-                  {/* Cabecalho */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12, marginBottom: 12 }}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                        <p style={{ fontFamily: SERIF, fontSize: 20, color: COLORS.text, margin: 0 }}>
-                          Pedido #{pedido.id ? pedido.id.slice(0, 8).toUpperCase() : '\u2014'}
-                        </p>
-                        <span style={{
-                          padding: '4px 12px', borderRadius: 20,
-                          background: getStatusColorLocal(pedido.status),
-                          color: COLORS.white, fontFamily: SANS, fontSize: 12, fontWeight: 600
-                        }}>
-                          {STATUS_LABELS[pedido.status] || pedido.status}
-                        </span>
-                      </div>
-                      <p style={{ fontFamily: SANS, fontSize: 13, color: COLORS.textLight, margin: '4px 0 0' }}>
-                        {formatarData(pedido.criado_em || pedido.created_at)}
-                      </p>
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: 60, color: COLORS.textSecondary }}>Carregando...</div>
+        ) : pedidosFiltrados.length === 0 ? (
+          <div style={{ background: COLORS.white, borderRadius: 12, padding: 40, textAlign: 'center', border: '1px solid ' + COLORS.border }}>
+            <p style={{ color: COLORS.textSecondary, fontFamily: SANS, margin: 0 }}>Nenhum pedido encontrado.</p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {pedidosFiltrados.map(pedido => (
+              <div
+                key={pedido.id}
+                style={{
+                  background: COLORS.white, borderRadius: 12, padding: 20,
+                  border: '1px solid ' + COLORS.border,
+                  borderLeft: `4px solid ${getStatusColor(pedido.status)}`
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12, marginBottom: 8 }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                      <span style={{ fontFamily: SERIF, fontSize: 16, color: COLORS.dark, fontWeight: 700 }}>
+                        Pedido #{pedido.id ? pedido.id.slice(0, 8).toUpperCase() : '---'}
+                      </span>
+                      <span style={{
+                        padding: '4px 10px', borderRadius: 20,
+                        background: getStatusColor(pedido.status),
+                        color: '#fff', fontSize: 11, fontWeight: 700, fontFamily: SANS
+                      }}>
+                        {STATUS_LABELS[pedido.status] || pedido.status}
+                      </span>
                     </div>
-                    <p style={{ fontFamily: SERIF, fontSize: 22, color: COLORS.primary, margin: 0, fontWeight: 700 }}>
-                      {formatarPreco(pedido.total)}
+                    <p style={{ fontFamily: SANS, fontSize: 13, color: COLORS.textSecondary, margin: '4px 0 0' }}>
+                      {new Date(pedido.criado_em || pedido.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </p>
                   </div>
+                  <span style={{ fontFamily: SERIF, fontSize: 20, color: COLORS.dark, fontWeight: 700 }}>
+                    {formatarPreco(pedido.total)}
+                  </span>
+                </div>
 
-                  <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', fontSize: 13, fontFamily: SANS, color: COLORS.textLight }}>
-                    <span><strong style={{ color: COLORS.text }}>Cliente:</strong> {pedido.cliente_nome || pedido.nome_cliente || '\u2014'}</span>
-                    <span><strong style={{ color: COLORS.text }}>Email:</strong> {pedido.email_cliente || '\u2014'}</span>
-                    <span style={{ color: expandido ? COLORS.primary : COLORS.textLight }}>
-                      {expandido ? '\u25b2 Clique para recolher' : '\u25bc Clique para detalhes'}
-                    </span>
-                  </div>
-
-                  {/* Detalhes expandidos */}
-                  {expandido && (
-                    <div onClick={(e) => e.stopPropagation()} style={{ marginTop: 20 }}>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 16, marginBottom: 20 }}>
-                        <div style={{ background: COLORS.lightGray, borderRadius: 8, padding: 14 }}>
-                          <p style={{ fontFamily: SANS, fontSize: 11, color: COLORS.textLight, textTransform: 'uppercase', letterSpacing: 1, margin: '0 0 8px', fontWeight: 700 }}>Dados do Cliente</p>
-                          <div style={{ fontFamily: SANS, fontSize: 13, color: COLORS.text, lineHeight: 1.8 }}>
-                            <div><strong>Nome:</strong> {pedido.cliente_nome || pedido.nome_cliente || '\u2014'}</div>
-                            <div><strong>Email:</strong> {pedido.email_cliente || '\u2014'}</div>
-                            <div><strong>Telefone:</strong> {formatarTelefone(pedido.cliente_telefone || pedido.telefone_cliente)}</div>
-                          </div>
-                        </div>
-                        <div style={{ background: COLORS.lightGray, borderRadius: 8, padding: 14 }}>
-                          <p style={{ fontFamily: SANS, fontSize: 11, color: COLORS.textLight, textTransform: 'uppercase', letterSpacing: 1, margin: '0 0 8px', fontWeight: 700 }}>Endereco de Entrega</p>
-                          <div style={{ fontFamily: SANS, fontSize: 13, color: COLORS.text, lineHeight: 1.8 }}>
-                            <div><strong>Endereco:</strong> {pedido.endereco_entrega || '\u2014'}</div>
-                            <div><strong>Bairro:</strong> {pedido.bairro_entrega || '\u2014'}</div>
-                            {pedido.complemento && <div><strong>Complemento:</strong> {pedido.complemento}</div>}
-                            {pedido.instrucoes_entrega && (
-                              <div style={{ marginTop: 8, padding: 8, background: '#FFF8E1', borderRadius: 6, border: '1px solid #FFE082' }}>
-                                <strong>Instrucoes:</strong> {pedido.instrucoes_entrega}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        <div style={{ background: COLORS.lightGray, borderRadius: 8, padding: 14 }}>
-                          <p style={{ fontFamily: SANS, fontSize: 11, color: COLORS.textLight, textTransform: 'uppercase', letterSpacing: 1, margin: '0 0 8px', fontWeight: 700 }}>Financeiro</p>
-                          <div style={{ fontFamily: SANS, fontSize: 13, color: COLORS.text, lineHeight: 1.8 }}>
-                            <div><strong>Subtotal:</strong> {formatarPreco(pedido.subtotal)}</div>
-                            <div><strong>Frete:</strong> {pedido.valor_frete ? formatarPreco(pedido.valor_frete) : '\u2014'}</div>
-                            {pedido.desconto > 0 && <div><strong>Desconto:</strong> -{formatarPreco(pedido.desconto)}</div>}
-                            <div style={{ borderTop: '1px solid ' + COLORS.border, paddingTop: 4, marginTop: 4, fontWeight: 700 }}>
-                              <strong>Total:</strong> {formatarPreco(pedido.total)}
-                            </div>
-                            {pedido.cupom_aplicado && (
-                              <div style={{ marginTop: 4 }}>
-                                <strong>Cupom:</strong> {typeof pedido.cupom_aplicado === 'object' ? pedido.cupom_aplicado.codigo : pedido.cupom_aplicado}
-                              </div>
-                            )}
-                            <div><strong>Pagamento:</strong> {pedido.pagamento_status || 'pendente'}</div>
-                            <div><strong>Forma entrega:</strong> {pedido.forma_entrega || '\u2014'}</div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Tabela de itens */}
-                      {pedido.itens && (
-                        <div style={{ background: COLORS.lightGray, borderRadius: 8, padding: 16, marginBottom: 20 }}>
-                          <p style={{ fontFamily: SANS, fontSize: 11, color: COLORS.textLight, textTransform: 'uppercase', letterSpacing: 1, margin: '0 0 10px', fontWeight: 700 }}>Itens do Pedido</p>
-                          <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: SANS, fontSize: 13 }}>
-                            <thead>
-                              <tr style={{ borderBottom: '2px solid ' + COLORS.border, color: COLORS.textLight }}>
-                                <th style={{ textAlign: 'left', padding: '6px 8px', fontWeight: 600 }}>Produto</th>
-                                <th style={{ textAlign: 'center', padding: '6px 8px', fontWeight: 600 }}>Qtd</th>
-                                <th style={{ textAlign: 'right', padding: '6px 8px', fontWeight: 600 }}>Preco</th>
-                                <th style={{ textAlign: 'right', padding: '6px 8px', fontWeight: 600 }}>Subtotal</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {Array.isArray(pedido.itens) ? (
-                                pedido.itens.map((item, idx) => (
-                                  <tr key={idx} style={{ borderBottom: '1px solid ' + COLORS.border }}>
-                                    <td style={{ padding: '8px', color: COLORS.text }}>{item.nome || item.title}</td>
-                                    <td style={{ textAlign: 'center', padding: '8px', color: COLORS.text }}>{item.quantidade || item.quantity || 1}</td>
-                                    <td style={{ textAlign: 'right', padding: '8px', color: COLORS.text }}>{formatarPreco(item.preco || item.unit_price)}</td>
-                                    <td style={{ textAlign: 'right', padding: '8px', color: COLORS.text, fontWeight: 600 }}>
-                                      {formatarPreco((item.preco || item.unit_price || 0) * (item.quantidade || item.quantity || 1))}
-                                    </td>
-                                  </tr>
-                                ))
-                              ) : (
-                                <tr><td colSpan={4} style={{ padding: '8px', color: COLORS.textLight }}>{pedido.itens}</td></tr>
-                              )}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-
-                      {/* Alterar status */}
-                      <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', paddingTop: 12, borderTop: '1px solid ' + COLORS.border }}>
-                        <span style={{ fontFamily: SANS, fontSize: 13, color: COLORS.textLight, fontWeight: 600 }}>Alterar status:</span>
-                        <select
-                          value={pedido.status}
-                          onChange={(e) => handleSolicitarAlteracao(pedido.id, e.target.value)}
-                          disabled={atualizando === pedido.id}
-                          style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid ' + COLORS.border, background: COLORS.white, color: COLORS.text, fontFamily: SANS, fontSize: 14, cursor: 'pointer', outline: 'none' }}>
-                          {STATUS_LIST.map(({ value, label }) => (
-                            <option key={value} value={value}>{label}</option>
-                          ))}
-                        </select>
-                        {atualizando === pedido.id && (
-                          <span style={{ fontFamily: SANS, fontSize: 13, color: COLORS.textLight }}>Atualizando...</span>
-                        )}
-                      </div>
-                    </div>
+                <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 13, fontFamily: SANS, color: COLORS.textSecondary }}>
+                  <span><strong style={{ color: COLORS.dark }}>Cliente:</strong> {pedido.cliente_nome || pedido.email_cliente}</span>
+                  {pedido.forma_entrega && (
+                    <span><strong style={{ color: COLORS.dark }}>Entrega:</strong> {pedido.forma_entrega === 'retirar' ? 'Retirada' : 'Entrega'}</span>
+                  )}
+                  {Array.isArray(pedido.itens) && (
+                    <span><strong style={{ color: COLORS.dark }}>Itens:</strong> {pedido.itens.length}</span>
                   )}
                 </div>
-              )
-            })}
+
+                {/* Acoes */}
+                <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
+                  {pedido.status !== 'cancelado' && pedido.status !== 'entregue' && (
+                    <>
+                      {pedido.status === 'pendente' && (
+                        <button onClick={() => { setConfirmPedidoId(pedido.id); setConfirmNovoStatus('confirmado') }}
+                          style={{ padding: '8px 16px', borderRadius: 999, border: 'none', background: '#3B82F6', color: '#fff', fontSize: 13, fontWeight: 600, fontFamily: SANS, cursor: 'pointer' }}>
+                          Confirmar pagamento
+                        </button>
+                      )}
+                      {pedido.status === 'confirmado' && (
+                        <button onClick={() => { setConfirmPedidoId(pedido.id); setConfirmNovoStatus('preparando') }}
+                          style={{ padding: '8px 16px', borderRadius: 999, border: 'none', background: '#A78BFA', color: '#fff', fontSize: 13, fontWeight: 600, fontFamily: SANS, cursor: 'pointer' }}>
+                          Iniciar preparo
+                        </button>
+                      )}
+                      {pedido.status === 'preparando' && (
+                        <button onClick={() => { setConfirmPedidoId(pedido.id); setConfirmNovoStatus('pronto') }}
+                          style={{ padding: '8px 16px', borderRadius: 999, border: 'none', background: '#10B981', color: '#fff', fontSize: 13, fontWeight: 600, fontFamily: SANS, cursor: 'pointer' }}>
+                          Marcar como pronto
+                        </button>
+                      )}
+                      {pedido.status === 'pronto' && (
+                        <button onClick={() => { setConfirmPedidoId(pedido.id); setConfirmNovoStatus('saiu_entrega') }}
+                          style={{ padding: '8px 16px', borderRadius: 999, border: 'none', background: '#FF6B6B', color: '#fff', fontSize: 13, fontWeight: 600, fontFamily: SANS, cursor: 'pointer' }}>
+                          Saiu para entrega
+                        </button>
+                      )}
+                      {pedido.status === 'saiu_entrega' && (
+                        <button onClick={() => { setConfirmPedidoId(pedido.id); setConfirmNovoStatus('entregue') }}
+                          style={{ padding: '8px 16px', borderRadius: 999, border: 'none', background: '#059669', color: '#fff', fontSize: 13, fontWeight: 600, fontFamily: SANS, cursor: 'pointer' }}>
+                          Confirmar entrega
+                        </button>
+                      )}
+                      <button onClick={() => { setConfirmPedidoId(pedido.id); setConfirmNovoStatus('cancelado') }}
+                        style={{ padding: '8px 16px', borderRadius: 999, border: '1px solid #EF4444', background: 'transparent', color: '#EF4444', fontSize: 13, fontWeight: 600, fontFamily: SANS, cursor: 'pointer' }}>
+                        Cancelar
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                {/* Detalhes expandiveis */}
+                {pedido.itens && Array.isArray(pedido.itens) && pedido.itens.length > 0 && (
+                  <details style={{ marginTop: 16 }}>
+                    <summary style={{ fontFamily: SANS, fontSize: 13, color: COLORS.coral, fontWeight: 600, cursor: 'pointer' }}>
+                      Ver detalhes do pedido
+                    </summary>
+                    <div style={{ marginTop: 12, background: COLORS.bg, borderRadius: 8, padding: 16 }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: SANS, fontSize: 13 }}>
+                        <thead>
+                          <tr style={{ borderBottom: '1px solid ' + COLORS.border }}>
+                            <th style={{ textAlign: 'left', padding: '6px 8px', fontWeight: 600, color: COLORS.textSecondary }}>Produto</th>
+                            <th style={{ textAlign: 'center', padding: '6px 8px', fontWeight: 600, color: COLORS.textSecondary }}>Qtd</th>
+                            <th style={{ textAlign: 'right', padding: '6px 8px', fontWeight: 600, color: COLORS.textSecondary }}>Preco</th>
+                            <th style={{ textAlign: 'right', padding: '6px 8px', fontWeight: 600, color: COLORS.textSecondary }}>Total</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {pedido.itens.map((item, idx) => (
+                            <tr key={idx} style={{ borderBottom: '1px solid ' + COLORS.border }}>
+                              <td style={{ padding: '8px', color: COLORS.dark }}>{item.nome || item.title}</td>
+                              <td style={{ textAlign: 'center', padding: '8px', color: COLORS.dark }}>{item.quantidade || item.quantity || 1}</td>
+                              <td style={{ textAlign: 'right', padding: '8px', color: COLORS.dark }}>{formatarPreco(item.preco || item.unit_price)}</td>
+                              <td style={{ textAlign: 'right', padding: '8px', color: COLORS.dark, fontWeight: 700 }}>
+                                {formatarPreco((item.preco || item.unit_price || 0) * (item.quantidade || item.quantity || 1))}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </details>
+                )}
+              </div>
+            ))}
           </div>
         )}
       </div>
 
       {/* Modal de confirmacao */}
-      {confirmModalOpen && (
+      {confirmPedidoId && confirmNovoStatus && (
         <div style={{
           position: 'fixed', inset: 0, zIndex: 99999,
-          background: 'rgba(45, 27, 14, 0.5)', backdropFilter: 'blur(4px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px'
-        }} onClick={handleCancelarAlteracao}>
-          <div style={{
+          background: 'rgba(45,52,54,0.5)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 24
+        }} onClick={() => { setConfirmPedidoId(null); setConfirmNovoStatus(null) }}>
+          <div onClick={e => e.stopPropagation()} style={{
             background: COLORS.white, borderRadius: 16, padding: 32,
-            maxWidth: 480, width: '100%', boxShadow: '0 8px 32px rgba(0,0,0,0.15)'
-          }} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ fontFamily: SERIF, fontSize: 20, color: COLORS.text, margin: '0 0 8px' }}>
-              Alterar Status
-            </h3>
-            <p style={{ fontFamily: SANS, fontSize: 14, color: COLORS.textLight, margin: '0 0 24px', lineHeight: 1.5 }}>
-              Tem certeza que deseja alterar o status do pedido <strong>#{String(confirmPedidoId || '').slice(0, 8).toUpperCase()}</strong> para <strong style={{ color: getStatusColorLocal(confirmNovoStatus) }}>{STATUS_LABELS[confirmNovoStatus] || confirmNovoStatus}</strong>?
+            maxWidth: 480, width: '100%', boxShadow: '0 8px 32px rgba(0,0,0,0.12)'
+          }}>
+            <h2 style={{ fontFamily: SERIF, fontSize: 20, color: COLORS.dark, margin: '0 0 12px 0' }}>
+              Confirmar alteracao de status
+            </h2>
+            <p style={{ fontFamily: SANS, fontSize: 14, color: COLORS.textSecondary, margin: '0 0 24px 0', lineHeight: 1.6 }}>
+              Tem certeza que deseja alterar o status do pedido <strong>#{String(confirmPedidoId || '').slice(0, 8).toUpperCase()}</strong> para <strong style={{ color: getStatusColor(confirmNovoStatus) }}>{STATUS_LABELS[confirmNovoStatus] || confirmNovoStatus}</strong>?
             </p>
-            {confirmNovoStatus === 'saiu_entrega' && (
-              <p style={{ fontFamily: SANS, fontSize: 13, color: '#B45309', background: '#FEF3C7', padding: '10px 14px', borderRadius: 8, margin: '0 0 16px', lineHeight: 1.4 }}>
-                O cliente recebera uma notificacao de que o pedido saiu para entrega.
-              </p>
-            )}
             <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
-              <button onClick={handleCancelarAlteracao} disabled={confirmEnviando}
-                style={{ padding: '10px 24px', borderRadius: 999, border: '1.5px solid ' + COLORS.border, background: 'transparent', color: COLORS.textLight, fontSize: 14, fontWeight: 600, fontFamily: SANS, cursor: 'pointer', opacity: confirmEnviando ? 0.5 : 1 }}>
+              <button
+                onClick={() => { setConfirmPedidoId(null); setConfirmNovoStatus(null) }}
+                style={{
+                  padding: '10px 24px', borderRadius: 999,
+                  border: '1.5px solid ' + COLORS.border,
+                  background: 'transparent', color: COLORS.textSecondary,
+                  fontSize: 14, fontWeight: 600, fontFamily: SANS, cursor: 'pointer'
+                }}
+              >
                 Cancelar
               </button>
-              <button onClick={handleConfirmarAlteracao} disabled={confirmEnviando}
-                style={{ padding: '10px 24px', borderRadius: 999, border: 'none', background: getStatusColorLocal(confirmNovoStatus), color: 'white', fontSize: 14, fontWeight: 600, fontFamily: SANS, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', opacity: confirmEnviando ? 0.6 : 1 }}>
-                {confirmEnviando ? 'Alterando...' : 'Sim, alterar'}
+              <button
+                onClick={handleConfirmarAlteracao}
+                disabled={confirmEnviando}
+                className={`btn btn-primary${confirmEnviando ? ' btn-loading' : ''}`}
+              >
+                {confirmEnviando ? 'Alterando...' : 'Confirmar'}
               </button>
             </div>
           </div>

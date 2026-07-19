@@ -5,267 +5,406 @@ import { useRouter, usePathname } from 'next/navigation'
 import { useCarrinho } from '../app/context/CarrinhoContext'
 import { useAuth } from '../app/context/AuthContext'
 import { storeConfig } from '@/config/store'
+import { theme } from '@/theme'
 
-const SANS = '"Plus Jakarta Sans", sans-serif'
-const SERIF = '"Playfair Display", Georgia, serif'
+const COLORS = theme.colors
+const SERIF = theme.fonts.serif
+const SANS = theme.fonts.sans
+const { identidade, navegacao } = storeConfig
 
-export default function Header() {
-  const router = useRouter()
-  const pathname = usePathname()
-  const { totalItens, setAberto } = useCarrinho()
-  const { usuario, logout } = useAuth()
-  const emailsAdmin = storeConfig.admin.adminEmails
-
-  const [scrolled, setScrolled] = useState(false)
-  const [loaded, setLoaded] = useState(false)
-  const [mobileOpen, setMobileOpen] = useState(false)
+function useMobile() {
   const [isMobile, setIsMobile] = useState(false)
-  const [logoHover, setLogoHover] = useState(false)
-
   useEffect(() => {
-    setLoaded(true)
-    const check = () => setIsMobile(window.innerWidth <= 768)
+    function check() { setIsMobile(window.innerWidth < 768) }
     check()
     window.addEventListener('resize', check)
     return () => window.removeEventListener('resize', check)
   }, [])
+  return isMobile
+}
+
+const styles = {
+  wrapper: {
+    background: COLORS.white,
+    borderBottom: '1px solid ' + COLORS.border,
+    position: 'sticky',
+    top: 0,
+    zIndex: 9999
+  },
+  inner: {
+    maxWidth: '1200px',
+    margin: '0 auto',
+    padding: '0 24px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    height: '68px'
+  },
+  leftSection: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 14
+  },
+  logoText: {
+    fontFamily: SERIF,
+    fontSize: '20px',
+    fontWeight: 700,
+    color: COLORS.dark,
+    lineHeight: 1.2,
+    letterSpacing: '-0.3px'
+  },
+  logoSublime: {
+    fontFamily: SANS,
+    fontSize: '11px',
+    color: COLORS.turquoise,
+    fontWeight: 600,
+    letterSpacing: '1.5px',
+    textTransform: 'uppercase'
+  },
+  navLink: {
+    padding: '8px 16px',
+    borderRadius: '999px',
+    fontSize: '14px',
+    fontWeight: 600,
+    color: COLORS.textSecondary,
+    textDecoration: 'none',
+    transition: 'all 0.2s'
+  },
+  navLinkActive: {
+    background: COLORS.bg,
+    color: COLORS.dark
+  },
+  actions: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12
+  },
+  iconButton: {
+    position: 'relative',
+    width: '40px',
+    height: '40px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '50%',
+    border: 'none',
+    background: 'transparent',
+    cursor: 'pointer',
+    color: COLORS.dark,
+    transition: 'all 0.2s'
+  },
+  badge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    background: COLORS.coral,
+    color: COLORS.white,
+    fontSize: '10px',
+    fontWeight: 700,
+    minWidth: '18px',
+    height: '18px',
+    borderRadius: '999px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '0 4px'
+  },
+  userMenu: {
+    position: 'relative'
+  },
+  userButton: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    padding: '6px 14px',
+    borderRadius: '999px',
+    border: '1.5px solid ' + COLORS.border,
+    background: COLORS.white,
+    cursor: 'pointer',
+    fontFamily: SANS,
+    fontSize: '13px',
+    fontWeight: 600,
+    color: COLORS.dark,
+    transition: 'all 0.2s'
+  },
+  dropdown: {
+    position: 'absolute',
+    top: 'calc(100% + 8px)',
+    right: 0,
+    background: COLORS.white,
+    borderRadius: 12,
+    border: '1px solid ' + COLORS.border,
+    boxShadow: '0 8px 24px rgba(0,0,0,0.1)',
+    minWidth: '180px',
+    overflow: 'hidden',
+    zIndex: 10000
+  },
+  dropdownItem: {
+    display: 'block',
+    width: '100%',
+    padding: '12px 16px',
+    fontSize: '14px',
+    color: COLORS.dark,
+    textDecoration: 'none',
+    border: 'none',
+    background: 'none',
+    textAlign: 'left',
+    fontFamily: SANS,
+    fontWeight: 500,
+    cursor: 'pointer',
+    transition: 'background 0.15s'
+  },
+  hamburger: {
+    width: '40px',
+    height: '40px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    border: 'none',
+    background: 'transparent',
+    cursor: 'pointer',
+    color: COLORS.dark
+  }
+}
+
+export default function Header({ variante = 'completo' }) {
+  const router = useRouter()
+  const pathname = usePathname()
+  const { itens } = useCarrinho()
+  const { usuario, logout } = useAuth()
+  const isMobile = useMobile()
+
+  const totalItens = itens.reduce((acc, item) => acc + (item.quantidade || 1), 0)
+
+  const [menuAberto, setMenuAberto] = useState(false)
+  const [mobileAberto, setMobileAberto] = useState(false)
+  const [logoHover, setLogoHover] = useState(false)
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20)
-    window.addEventListener('scroll', onScroll)
-    return () => window.removeEventListener('scroll', onScroll)
+    function handleClick(e) {
+      if (!e.target.closest('[data-user-menu]')) {
+        setMenuAberto(false)
+      }
+    }
+    document.addEventListener('click', handleClick)
+    return () => document.removeEventListener('click', handleClick)
   }, [])
 
-  const isAdmin = usuario && emailsAdmin.includes(usuario.email)
-  const userInitial = usuario?.email?.charAt(0)?.toUpperCase() || '?'
+  useEffect(() => {
+    setMobileAberto(false)
+  }, [pathname])
 
-  const navLinks = [
-    { href: '/cardapio', label: 'Cardápio', icon: 'c' },
-    ...(usuario ? [{ href: '/pedidos', label: 'Meus Pedidos', icon: 'p' }] : []),
-    ...(isAdmin ? [{ href: '/admin/pedidos', label: 'Admin', icon: 'a' }] : []),
-  ]
-
-  const styles = {
-    wrapper: {
-      opacity: loaded ? 1 : 0,
-      transition: 'opacity 0.4s ease, box-shadow 0.3s ease',
-      position: 'sticky',
-      top: 0,
-      zIndex: 1000,
-      height: isMobile ? '60px' : '72px',
-      backgroundColor: '#FFFFFF',
-      borderBottom: '1px solid rgba(196,151,90,0.15)',
-      boxShadow: scrolled ? '0 2px 12px rgba(45,27,14,0.08)' : 'none',
-    },
-    inner: {
-      maxWidth: '1200px',
-      margin: '0 auto',
-      height: '100%',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: '0 20px',
-    },
-    leftSection: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 14,
-      flexShrink: 0,
-    },
-    centerNav: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 8,
-      flex: 1,
-      justifyContent: 'center',
-    },
-    rightSection: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 8,
-      flexShrink: 0,
-    },
-    logoText: {
-      fontFamily: SERIF,
-      fontSize: isMobile ? '18px' : '22px',
-      fontWeight: 700,
-      color: '#2D1B0E',
-      textDecoration: 'none',
-      letterSpacing: '-0.3px',
-      lineHeight: 1.2,
-    },
-    logoSublime: {
-      fontFamily: SANS,
-      fontSize: isMobile ? '9px' : '10px',
-      fontWeight: 500,
-      color: '#A0522D',
-      textDecoration: 'none',
-      letterSpacing: '2.5px',
-      textTransform: 'uppercase',
-      lineHeight: 1,
-      marginTop: 1,
-    },
-    link: (active) => ({
-      display: 'flex',
-      alignItems: 'center',
-      gap: 6,
-      padding: '8px 14px',
-      borderRadius: 999,
-      background: active ? 'rgba(196,151,90,0.12)' : 'transparent',
-      color: active ? '#2D1B0E' : '#7A6A5A',
-      fontSize: 14,
-      fontWeight: active ? 600 : 500,
-      fontFamily: SANS,
-      textDecoration: 'none',
-      cursor: 'pointer',
-      border: 'none',
-      transition: 'all 0.2s ease',
-    }),
-    sacolaBtn: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 6,
-      padding: '8px 16px',
-      borderRadius: 999,
-      border: '1.5px solid #C4975A',
-      background: 'transparent',
-      color: '#2D1B0E',
-      fontSize: 14,
-      fontWeight: 600,
-      fontFamily: SANS,
-      cursor: 'pointer',
-      transition: 'all 0.2s ease',
-    },
-    avatar: {
-      width: 34,
-      height: 34,
-      borderRadius: '50%',
-      background: 'linear-gradient(135deg, #2D1B0E, #4A2F1A)',
-      color: '#C4975A',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontSize: 14,
-      fontWeight: 700,
-      fontFamily: SANS,
-      cursor: 'pointer',
-      border: 'none',
-    },
-    logoutBtn: {
-      padding: '6px 12px',
-      borderRadius: 999,
-      border: '1px solid #E8DDD0',
-      background: 'transparent',
-      color: '#7A6A5A',
-      fontSize: 13,
-      fontFamily: SANS,
-      cursor: 'pointer',
-      transition: 'all 0.2s',
-    },
+  if (variante === 'simples') {
+    return (
+      <header style={styles.wrapper}>
+        <div style={styles.inner}>
+          <Link href="/" style={{ textDecoration: 'none' }}>
+            <span style={{ fontFamily: SERIF, fontSize: '20px', fontWeight: 700, color: COLORS.dark }}>
+              {identidade.name}
+            </span>
+          </Link>
+        </div>
+      </header>
+    )
   }
+
+  const navLinks = navegacao?.navLinks || [
+    { href: '/cardapio', label: 'Cardapio' },
+    { href: '/pedidos', label: 'Meus Pedidos' }
+  ]
 
   return (
     <header style={styles.wrapper}>
       <div style={styles.inner}>
-        {/* ESQUERDA - Logo + Texto */}
         <div style={styles.leftSection}>
-          <Link href="/" style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 14,
-            textDecoration: 'none',
-            transition: 'opacity 0.3s ease, transform 0.3s ease',
-            opacity: logoHover ? 0.85 : 1,
-            transform: logoHover ? 'scale(1.02)' : 'scale(1)',
-          }}
+          <Link
+            href="/"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 14,
+              textDecoration: 'none',
+              opacity: logoHover ? 0.85 : 1,
+              transform: logoHover ? 'scale(0.98)' : 'scale(1)',
+              transition: 'all 0.3s ease'
+            }}
             onMouseEnter={() => setLogoHover(true)}
             onMouseLeave={() => setLogoHover(false)}
           >
-            {/* Logo circular */}
-            <img
-              src="/images/logo-header.png"
-              alt="Tortas da Lika"
-              style={{
-                height: isMobile ? 42 : 50,
-                width: 'auto',
-                display: 'block',
-                borderRadius: '50%',
-                transition: 'transform 0.3s ease',
-                transform: logoHover ? 'rotate(-3deg)' : 'rotate(0deg)',
-                boxShadow: '0 2px 8px rgba(45,27,14,0.1)',
-              }}
-            />
-
-            {/* Texto ao lado */}
+            <div style={{
+              width: '38px', height: '38px',
+              borderRadius: '10px',
+              background: `linear-gradient(135deg, ${COLORS.coral} 0%, #E55A5A 100%)`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0
+            }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
+              </svg>
+            </div>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span style={styles.logoText}>Tortas da Lika</span>
-              <span style={styles.logoSublime}>Confeitaria Artesanal</span>
+              <span style={styles.logoText}>{identidade.name}</span>
+              <span style={styles.logoSublime}>{identidade.subtitle}</span>
             </div>
           </Link>
         </div>
 
-        {/* CENTRO - Nav */}
-        <nav style={isMobile ? { display: 'none' } : styles.centerNav}>
-          {navLinks.map(link => (
-            <Link
-              key={link.href}
-              href={link.href}
-              style={styles.link(pathname === link.href || pathname.startsWith(link.href + '/'))}
-              onMouseEnter={e => { if (pathname !== link.href) e.currentTarget.style.background = 'rgba(196,151,90,0.08)' }}
-              onMouseLeave={e => { if (pathname !== link.href) e.currentTarget.style.background = 'transparent' }}
-            >
-              {link.label}
-            </Link>
-          ))}
-        </nav>
+        {!isMobile && (
+          <nav style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {navLinks.map(link => {
+              const isActive = pathname === link.href || pathname?.startsWith(link.href + '/')
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  style={{
+                    ...styles.navLink,
+                    ...(isActive ? styles.navLinkActive : {}),
+                    fontWeight: isActive ? 700 : 600,
+                    color: isActive ? COLORS.dark : COLORS.textSecondary
+                  }}
+                  onMouseEnter={e => {
+                    if (!isActive) { e.currentTarget.style.background = COLORS.bg; e.currentTarget.style.color = COLORS.dark }
+                  }}
+                  onMouseLeave={e => {
+                    if (!isActive) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = COLORS.textSecondary }
+                  }}
+                >
+                  {link.label}
+                </Link>
+              )
+            })}
+          </nav>
+        )}
 
-        {/* DIREITA - Acoes */}
-        <div style={styles.rightSection}>
+        <div style={styles.actions}>
           <button
-            onClick={() => setAberto(true)}
-            style={styles.sacolaBtn}
-            onMouseEnter={e => { e.currentTarget.style.background = '#C4975A'; e.currentTarget.style.color = '#fff' }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#2D1B0E' }}
+            onClick={() => router.push('/carrinho')}
+            style={styles.iconButton}
+            onMouseEnter={e => { e.currentTarget.style.background = COLORS.bg }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="9" cy="21" r="1" />
-              <circle cx="20" cy="21" r="1" />
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" />
               <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
             </svg>
-            Sacola{totalItens > 0 && ` (${totalItens})`}
+            {totalItens > 0 && (
+              <span style={styles.badge}>{totalItens > 9 ? '9+' : totalItens}</span>
+            )}
           </button>
 
-          {usuario ? (
-            <>
-              <button style={styles.avatar} onClick={() => router.push('/perfil')} title={usuario.email}>
-                {userInitial}
-              </button>
+          <div data-user-menu style={styles.userMenu}>
+            {usuario ? (
+              <>
+                <button
+                  onClick={() => setMenuAberto(!menuAberto)}
+                  style={styles.userButton}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = COLORS.coral }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = COLORS.border }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
+                  </svg>
+                  <span style={{ maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {usuario.email?.split('@')[0] || 'Conta'}
+                  </span>
+                </button>
+
+                {menuAberto && (
+                  <div style={styles.dropdown}>
+                    <Link href="/pedidos" style={styles.dropdownItem}
+                      onMouseEnter={e => e.currentTarget.style.background = COLORS.bg}
+                      onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                    >
+                      Meus Pedidos
+                    </Link>
+                    {storeConfig.admin?.adminEmails?.includes(usuario.email) && (
+                      <Link href="/admin/pedidos" style={styles.dropdownItem}
+                        onMouseEnter={e => e.currentTarget.style.background = COLORS.bg}
+                        onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                      >
+                        Admin
+                      </Link>
+                    )}
+                    <button onClick={() => { logout(); router.push('/') }} style={styles.dropdownItem}
+                      onMouseEnter={e => e.currentTarget.style.background = COLORS.bg}
+                      onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                    >
+                      Sair
+                    </button>
+                  </div>
+                )}
+              </>
+            ) : (
               <button
-                onClick={logout}
-                style={styles.logoutBtn}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = '#C4975A'; e.currentTarget.style.color = '#2D1B0E' }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = '#E8DDD0'; e.currentTarget.style.color = '#7A6A5A' }}
+                onClick={() => router.push('/login')}
+                style={styles.userButton}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = COLORS.coral; e.currentTarget.style.background = COLORS.bg }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = COLORS.border; e.currentTarget.style.background = COLORS.white }}
               >
-                Sair
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
+                </svg>
+                Entrar
               </button>
-            </>
-          ) : (
+            )}
+          </div>
+
+          {isMobile && (
             <button
-              onClick={() => router.push('/login')}
-              style={{
-                ...styles.sacolaBtn,
-                background: '#2D1B0E',
-                color: '#fff',
-                border: 'none',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.background = '#4A2F1A' }}
-              onMouseLeave={e => { e.currentTarget.style.background = '#2D1B0E' }}
+              onClick={() => setMobileAberto(!mobileAberto)}
+              style={styles.hamburger}
             >
-              Entrar
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                {mobileAberto ? (
+                  <>
+                    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                  </>
+                ) : (
+                  <>
+                    <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
+                  </>
+                )}
+              </svg>
             </button>
           )}
         </div>
       </div>
+
+      {isMobile && mobileAberto && (
+        <div style={{
+          borderTop: '1px solid ' + COLORS.border,
+          background: COLORS.white,
+          padding: '16px 24px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 8
+        }}>
+          {navLinks.map(link => {
+            const isActive = pathname === link.href
+            return (
+              <Link key={link.href} href={link.href} style={{
+                padding: '12px 16px', borderRadius: '10px',
+                fontSize: '15px', fontWeight: isActive ? 700 : 600,
+                color: isActive ? COLORS.dark : COLORS.textSecondary,
+                background: isActive ? COLORS.bg : 'transparent',
+                textDecoration: 'none', fontFamily: SANS
+              }}>
+                {link.label}
+              </Link>
+            )
+          })}
+          {usuario && storeConfig.admin?.adminEmails?.includes(usuario.email) && (
+            <Link href="/admin/pedidos" style={{
+              padding: '12px 16px', borderRadius: '10px',
+              fontSize: '15px', fontWeight: 600,
+              color: COLORS.turquoise, textDecoration: 'none', fontFamily: SANS
+            }}>
+              Admin
+            </Link>
+          )}
+        </div>
+      )}
     </header>
   )
 }
