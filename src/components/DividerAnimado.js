@@ -1,37 +1,46 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { theme } from '@/theme'
+
+const COLORS = theme.colors
 
 export default function DividerAnimado() {
   const [offset, setOffset] = useState(0)
+  const ref = useRef(null)
+  const [visible, setVisible] = useState(false)
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setOffset(prev => (prev + 1) % 100)
-    }, 120)
-    return () => clearInterval(interval)
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) setVisible(true) },
+      { threshold: 0.3 }
+    )
+    if (ref.current) observer.observe(ref.current)
+    return () => observer.disconnect()
   }, [])
 
-  return (
-    <div style={{
-      width: '100%',
-      height: 32,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      position: 'relative',
-      overflow: 'hidden',
-      background: 'transparent',
-      margin: '4px 0',
-    }}>
-      {/* Linha base fina */}
-      <div style={{
-        position: 'absolute',
-        width: '60%',
-        height: 1,
-        background: 'rgba(196,151,90,0.25)',
-      }} />
+  useEffect(() => {
+    if (!visible) return
+    let frame
+    function animar() {
+      setOffset(prev => (prev + 0.3) % 100)
+      frame = requestAnimationFrame(animar)
+    }
+    frame = requestAnimationFrame(animar)
+    return () => cancelAnimationFrame(frame)
+  }, [visible])
 
-      {/* Glow se movendo — um ponto de luz que percorre a linha */}
+  return (
+    <div ref={ref} style={{
+      position: 'relative',
+      width: '80%',
+      maxWidth: '400px',
+      height: '1px',
+      margin: '40px auto',
+      background: `linear-gradient(90deg, transparent 0%, ${COLORS.border} 50%, transparent 100%)`,
+      opacity: visible ? 1 : 0,
+      transition: 'opacity 0.6s ease'
+    }}>
+      {/* Glow se movendo */}
       <div style={{
         position: 'absolute',
         width: '60%',
@@ -39,13 +48,16 @@ export default function DividerAnimado() {
         background: `linear-gradient(90deg,
           transparent 0%,
           transparent ${15 + (offset * 0.6) - 12}%,
-          rgba(196,151,90,0.3) ${15 + (offset * 0.6) - 6}%,
-          #C4975A ${15 + (offset * 0.6)}%,
-          rgba(196,151,90,0.3) ${15 + (offset * 0.6) + 6}%,
+          ${COLORS.coral}33 ${15 + (offset * 0.6) - 6}%,
+          ${COLORS.coral}99 ${15 + (offset * 0.6) - 2}%,
+          ${COLORS.coral} ${15 + (offset * 0.6)}%,
+          ${COLORS.coral}99 ${15 + (offset * 0.6) + 2}%,
+          ${COLORS.coral}33 ${15 + (offset * 0.6) + 6}%,
           transparent ${15 + (offset * 0.6) + 12}%,
           transparent 100%
         )`,
-        transition: 'background 0.12s linear',
+        transition: 'background 0.05s linear',
+        pointerEvents: 'none'
       }} />
     </div>
   )
