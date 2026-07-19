@@ -1,84 +1,93 @@
 'use client'
-
-import { Suspense, useEffect, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { supabase } from '@/lib/supabaseClient'
+import HeaderUnificado from '@/components/HeaderUnificado'
+import { theme } from '@/theme'
 
-function PagamentoFracassoContent() {
+const COLORS = theme.colors
+const SERIF = theme.fonts.serif
+const SANS = theme.fonts.sans
+
+function PedidoPendenteContent() {
+  const router = useRouter()
   const searchParams = useSearchParams()
-  const [atualizando, setAtualizando] = useState(true)
-
-  const paymentId = searchParams.get('payment_id')
-  const status = searchParams.get('status')
-  const externalReference = searchParams.get('external_reference')
+  const pedidoId = searchParams.get('pedidoId')
 
   useEffect(() => {
-    if (externalReference) {
-      fetch('/api/pedido/atualizar-status', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          pedido_id: externalReference,
-          payment_id: paymentId,
-          status_pagamento: status || 'rejected'
-        })
-      }).finally(() => setAtualizando(false))
-    } else {
-      setAtualizando(false)
+    async function verificarPagamento() {
+      if (!pedidoId) return
+      const { data } = await supabase
+        .from('pedidos')
+        .select('status, pagamento_status')
+        .eq('id', pedidoId)
+        .single()
+
+      if (data && (data.status === 'confirmado' || data.pagamento_status === 'approved')) {
+        router.push(`/pedido/sucesso?pedidoId=${pedidoId}`)
+      }
     }
-  }, [externalReference, paymentId, status])
 
-  const containerStyle = {
-    minHeight: '100vh', display: 'flex', flexDirection: 'column',
-    alignItems: 'center', justifyContent: 'center', padding: '24px',
-    backgroundColor: '#fff8f0', fontFamily: 'Arial, Helvetica, sans-serif',
-    color: '#4a3728', textAlign: 'center'
-  }
-
-  const cardStyle = {
-    backgroundColor: '#ffffff', borderRadius: '12px',
-    boxShadow: '0 4px 16px rgba(74, 55, 40, 0.15)',
-    padding: '40px', maxWidth: '480px', width: '100%'
-  }
+    const interval = setInterval(verificarPagamento, 5000)
+    return () => clearInterval(interval)
+  }, [pedidoId, router])
 
   return (
-    <main style={containerStyle}>
-      <section style={cardStyle}>
-        {atualizando ? (
-          <p style={{ color: '#6b5644', fontSize: '16px' }}>Atualizando pagamento...</p>
-        ) : (
-          <>
-            <h1 style={{ fontSize: '28px', fontWeight: 700, margin: '0 0 16px 0', color: '#4a3728' }}>
-              Pagamento nao aprovado
-            </h1>
-            <p style={{ fontSize: '16px', lineHeight: '1.6', margin: '0 0 24px 0', color: '#6b5644' }}>
-              Infelizmente seu pagamento nao foi aprovado. Tente novamente ou escolha outra forma de pagamento.
+    <div style={{ minHeight: '100vh', background: COLORS.bg, fontFamily: SANS }}>
+      <HeaderUnificado variante="simples" />
+      <div style={{ maxWidth: '500px', margin: '0 auto', padding: '80px 24px', textAlign: 'center' }}>
+        <div style={{
+          background: COLORS.white, borderRadius: 16, padding: '48px 32px',
+          border: '1px solid ' + COLORS.border
+        }}>
+          <div style={{
+            width: 72, height: 72, borderRadius: '50%',
+            background: '#FEF3C7', display: 'flex',
+            alignItems: 'center', justifyContent: 'center',
+            margin: '0 auto 24px'
+          }}>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#B45309" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+            </svg>
+          </div>
+
+          <h1 style={{ fontFamily: SERIF, fontSize: '26px', color: COLORS.dark, fontWeight: 700, margin: '0 0 8px 0' }}>
+            Aguardando pagamento
+          </h1>
+          <p style={{ fontSize: '14px', color: COLORS.textSecondary, margin: '0 0 8px 0', lineHeight: 1.6 }}>
+            Seu pedido foi registrado e estamos aguardando a confirmacao do pagamento.
+          </p>
+          {pedidoId && (
+            <p style={{ fontSize: '13px', color: COLORS.textLight, margin: '0 0 32px 0' }}>
+              Pedido: <strong style={{ color: COLORS.dark }}>#{pedidoId.slice(0, 8).toUpperCase()}</strong>
             </p>
-            {externalReference && (
-              <div style={{ backgroundColor: '#f7efe6', borderRadius: '8px', padding: '16px', margin: '0 0 24px 0' }}>
-                <p style={{ fontSize: '14px', color: '#6b5644', margin: 0 }}>
-                  Pedido: <strong style={{ color: '#4a3728' }}>{externalReference}</strong>
-                </p>
-              </div>
-            )}
-            <Link href="/carrinho" style={{
-              display: 'inline-block', backgroundColor: '#4a3728', color: '#ffffff',
-              textDecoration: 'none', padding: '12px 24px', borderRadius: '8px',
-              fontWeight: 600, fontSize: '15px'
-            }}>
-              Tentar novamente
+          )}
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <Link href="/pedidos" className="btn btn-primary" style={{ textDecoration: 'none' }}>
+              Acompanhar pedido
             </Link>
-          </>
-        )}
-      </section>
-    </main>
+            <Link href="/cardapio" style={{
+              padding: '12px 28px', borderRadius: 999,
+              border: '1.5px solid ' + COLORS.border,
+              color: COLORS.dark, fontSize: '14px', fontWeight: 600,
+              fontFamily: SANS, textDecoration: 'none',
+              display: 'inline-block'
+            }}>
+              Voltar ao cardapio
+            </Link>
+          </div>
+
+          <p style={{ fontSize: '12px', color: COLORS.textLight, marginTop: 24 }}>
+            Esta pagina atualiza automaticamente quando o pagamento for confirmado.
+          </p>
+        </div>
+      </div>
+    </div>
   )
 }
 
-export default function PagamentoFracassoPage() {
-  return (
-    <Suspense fallback={<div style={{ padding: 40, textAlign: 'center' }}>Carregando...</div>}>
-      <PagamentoFracassoContent />
-    </Suspense>
-  )
+export default function PedidoPendentePage() {
+  return <PedidoPendenteContent />
 }

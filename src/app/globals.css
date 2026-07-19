@@ -1,51 +1,5 @@
 @import "tailwindcss";
 
-/* ================================================================
-   TORTAS DA LIKA — Design System Premium
-   Paleta: Marrom Essencial + Dourado + Creme
-   ================================================================ */
-
-@theme {
-  --color-brand-dark: #2D1B0E;
-  --color-brand-dark-light: #4A3728;
-  --color-brand-gold: #C4975A;
-  --color-brand-gold-light: #D4A97A;
-  --color-brand-gold-dark: #A67B3E;
-  --color-brand-bg: #FAF7F2;
-  --color-brand-bg-soft: #F5EDE3;
-  --color-brand-bg-card: #FFFFFF;
-  --color-brand-text: #3D2817;
-  --color-brand-text-secondary: #6B4F3A;
-  --color-brand-border: #E8E0D8;
-  --color-brand-border-light: #F0EAE0;
-
-  --color-neutral-50: #FAFAF8;
-  --color-neutral-100: #F0EDE8;
-  --color-neutral-200: #E0DAD2;
-  --color-neutral-300: #C4BCB0;
-  --color-neutral-400: #A89E90;
-  --color-neutral-500: #8C826E;
-  --color-neutral-600: #6B5F4F;
-  --color-neutral-700: #4A4035;
-  --color-neutral-800: #2D271F;
-  --color-neutral-900: #1A1610;
-
-  --color-status-warning: #F59E0B;
-  --color-status-warning-bg: #FEF3C7;
-  --color-status-success: #10B981;
-  --color-status-success-bg: #D1FAE5;
-  --color-status-danger: #EF4444;
-  --color-status-danger-bg: #FEE2E2;
-  --color-status-info: #3B82F6;
-  --color-status-info-bg: #DBEAFE;
-  --color-status-canceled: #6B7280;
-  --color-status-canceled-bg: #F3F4F6;
-}
-
-/* ================================================================
-   GLOBAIS
-   ================================================================ */
-
 * {
   box-sizing: border-box;
 }
@@ -59,7 +13,7 @@ body {
 }
 
 ::selection {
-  background: var(--color-brand-gold);
+  background: var(--color-brand-coral);
   color: white;
 }
 
@@ -68,7 +22,7 @@ body {
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--color-brand-bg-soft);
+  background: var(--color-brand-bg);
 }
 ::-webkit-scrollbar-thumb {
   background: var(--color-neutral-300);
@@ -78,51 +32,71 @@ body {
   background: var(--color-neutral-400);
 }
 
-/* ================================================================
-   BOTOES — Premium com gradiente, spring easing e preparacao pro ripple
-   ================================================================ */
+@theme {
+  --color-brand-coral: #FF6B6B;
+  --color-brand-coral-dark: #E55A5A;
+  --color-brand-turquoise: #00CEC9;
+  --color-brand-yellow: #FDCB6E;
+  --color-brand-dark: #2D3436;
+  --color-brand-bg: #F8F9FA;
+  --color-brand-bg-soft: #F1F2F6;
+  --color-brand-text: #2D3436;
+  --color-brand-text-light: #636E72;
+  --color-brand-border: #DFE6E9;
+  --color-brand-border-light: #E8E8E8;
+  --color-neutral-50: #FAFAFA;
+  --color-neutral-100: #F1F2F6;
+  --color-neutral-200: #DFE6E9;
+  --color-neutral-300: #B2BEC3;
+  --color-neutral-400: #636E72;
+  --color-neutral-500: #4A5558;
+  --color-neutral-600: #2D3436;
+  --color-neutral-700: #1E2325;
+  --color-neutral-800: #141718;
+  --color-neutral-900: #0A0B0C;
+  --color-status-warning-bg: #FEF3C7;
+  --color-status-success-bg: #D1FAE5;
+  --color-status-info-bg: #DBEAFE;
+  --color-status-danger-bg: #FEE2E2;
+  --color-status-canceled-bg: #F1F2F6;
+}
 
+/* BOTOES */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 10px 24px;
+  padding: 12px 28px;
   border-radius: 999px;
   border: none;
+  font-family: "Plus Jakarta Sans", sans-serif;
   font-size: 14px;
-  font-weight: 600;
-  font-family: "Plus Jakarta Sans", inherit;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-  text-decoration: none;
-  line-height: 1.4;
+  text-transform: uppercase;
   letter-spacing: 0.3px;
   position: relative;
   overflow: hidden;
   outline: none;
+  transition: all 0.2s ease;
 }
-
 .btn:hover {
   transform: scale(1.02);
 }
-
 .btn:active {
   transform: scale(0.96);
 }
-
 .btn:focus-visible {
-  outline: 2px solid var(--color-brand-gold);
+  outline: 2px solid var(--color-brand-coral);
   outline-offset: 3px;
 }
-
 .btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
 }
 
-/* Ripple container — o span .ripple e gerado via JS */
 .btn .ripple {
   position: absolute;
   border-radius: 50%;
@@ -131,14 +105,12 @@ body {
   animation: rippleAnim 0.6s ease-out;
   pointer-events: none;
 }
-
 .btn-dark .ripple,
 .btn-primary .ripple {
   background: rgba(255, 255, 255, 0.3);
 }
-
 .btn-ghost .ripple {
-  background: rgba(45, 27, 14, 0.12);
+  background: rgba(45, 52, 54, 0.12);
 }
 
 @keyframes rippleAnim {
@@ -148,27 +120,24 @@ body {
   }
 }
 
-/* Variantes de botao */
 .btn-primary {
-  background: linear-gradient(135deg, #2D1B0E 0%, #4A2F1A 100%);
+  background: linear-gradient(135deg, #FF6B6B 0%, #E55A5A 100%);
   color: white;
-  box-shadow: 0 2px 8px rgba(45, 27, 14, 0.2);
+  box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
 }
-
 .btn-primary:hover {
-  background: linear-gradient(135deg, #3D2212 0%, #5A3A22 100%);
-  box-shadow: 0 6px 24px rgba(45, 27, 14, 0.3);
+  background: linear-gradient(135deg, #E55A5A 0%, #CC4C4C 100%);
+  box-shadow: 0 6px 24px rgba(255, 107, 107, 0.4);
 }
 
 .btn-gold {
-  background: linear-gradient(135deg, #C4975A 0%, #D4A97A 100%);
-  color: white;
-  box-shadow: 0 2px 8px rgba(196, 151, 90, 0.3);
+  background: linear-gradient(135deg, #FDCB6E 0%, #F6B93E 100%);
+  color: #2D3436;
+  box-shadow: 0 2px 8px rgba(253, 203, 110, 0.3);
 }
-
 .btn-gold:hover {
-  background: linear-gradient(135deg, #B8894C 0%, #C99E6E 100%);
-  box-shadow: 0 6px 24px rgba(196, 151, 90, 0.4);
+  background: linear-gradient(135deg, #F6B93E 0%, #EBA82E 100%);
+  box-shadow: 0 6px 24px rgba(253, 203, 110, 0.4);
 }
 
 .btn-ghost {
@@ -177,42 +146,18 @@ body {
   border: 1.5px solid var(--color-brand-border);
   box-shadow: none;
 }
-
 .btn-ghost:hover {
   background: var(--color-brand-bg-soft);
-  border-color: var(--color-brand-gold);
-  color: var(--color-brand-gold);
+  border-color: var(--color-brand-coral);
+  color: var(--color-brand-coral);
   box-shadow: none;
 }
 
 .btn-ghost-gold {
   background: transparent;
-  color: var(--color-brand-gold);
-  border: 1.5px solid var(--color-brand-gold);
+  color: var(--color-brand-coral);
+  border: 1.5px solid var(--color-brand-coral);
   box-shadow: none;
-}
-
-.btn-ghost-gold:hover {
-  background: var(--color-brand-gold);
-  color: white;
-  box-shadow: 0 4px 16px rgba(196, 151, 90, 0.3);
-}
-
-/* Tamanhos */
-.btn-sm {
-  padding: 6px 16px;
-  font-size: 13px;
-  border-radius: 999px;
-}
-
-.btn-lg {
-  padding: 14px 32px;
-  font-size: 15px;
-  border-radius: 999px;
-}
-
-.btn-block {
-  width: 100%;
 }
 
 /* Estado de loading */
@@ -221,7 +166,6 @@ body {
   color: transparent !important;
   pointer-events: none;
 }
-
 .btn-loading::after {
   content: '';
   position: absolute;
@@ -232,39 +176,31 @@ body {
   border-radius: 50%;
   animation: btnSpinner 0.6s linear infinite;
 }
-
 .btn-ghost.btn-loading::after,
 .btn-ghost-gold.btn-loading::after {
-  border-color: rgba(45, 27, 14, 0.15);
-  border-top-color: var(--color-brand-gold);
+  border-color: rgba(45, 52, 54, 0.15);
+  border-top-color: var(--color-brand-coral);
 }
 
 @keyframes btnSpinner {
   to { transform: rotate(360deg); }
 }
 
-/* ================================================================
-   CARDS
-   ================================================================ */
-
+/* CARDS */
 .card {
   background: white;
   border-radius: 16px;
-  box-shadow: 0 1px 3px rgba(45, 27, 14, 0.06), 0 1px 2px rgba(45, 27, 14, 0.04);
+  box-shadow: 0 1px 3px rgba(45, 52, 54, 0.06), 0 1px 2px rgba(45, 52, 54, 0.04);
   border: 1px solid var(--color-brand-border-light);
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
-
 .card-hover:hover {
-  box-shadow: 0 8px 30px rgba(45, 27, 14, 0.08), 0 2px 8px rgba(45, 27, 14, 0.04);
+  box-shadow: 0 8px 30px rgba(45, 52, 54, 0.08), 0 2px 8px rgba(45, 52, 54, 0.04);
   border-color: var(--color-brand-border);
   transform: translateY(-2px);
 }
 
-/* ================================================================
-   INPUTS
-   ================================================================ */
-
+/* INPUTS */
 .input {
   width: 100%;
   padding: 10px 14px;
@@ -278,22 +214,18 @@ body {
   transition: all 0.25s ease;
   box-sizing: border-box;
 }
-
 .input:focus {
-  border-color: var(--color-brand-gold);
-  box-shadow: 0 0 0 3px rgba(196, 151, 90, 0.15);
+  border-color: var(--color-brand-coral);
+  box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.15);
 }
-
 .input::placeholder {
   color: var(--color-neutral-400);
 }
-
 .input-group {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
-
 .input-label {
   font-size: 13px;
   font-weight: 600;
@@ -301,10 +233,7 @@ body {
   font-family: "Plus Jakarta Sans", sans-serif;
 }
 
-/* ================================================================
-   BADGES / TAGS DE STATUS
-   ================================================================ */
-
+/* BADGES */
 .badge {
   display: inline-flex;
   align-items: center;
@@ -317,95 +246,73 @@ body {
   letter-spacing: 0.2px;
   font-family: "Plus Jakarta Sans", sans-serif;
 }
-
 .badge-warning {
   background: var(--color-status-warning-bg);
   color: #B45309;
 }
-
 .badge-success {
   background: var(--color-status-success-bg);
   color: #047857;
 }
-
 .badge-info {
   background: var(--color-status-info-bg);
   color: #1D4ED8;
 }
-
 .badge-danger {
   background: var(--color-status-danger-bg);
   color: #B91C1C;
 }
-
 .badge-canceled {
   background: var(--color-status-canceled-bg);
-  color: var(--color-neutral-600);
+  color: var(--color-neutral-400);
 }
 
-/* ================================================================
-   ANIMACOES
-   ================================================================ */
-
+/* ANIMACOES */
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
 }
-
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
 }
-
 @keyframes scaleIn {
   from { opacity: 0; transform: scale(0.92); }
   to { opacity: 1; transform: scale(1); }
 }
-
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
 }
-
 @keyframes pulseSoft {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.8; }
 }
-
 @keyframes slideInRight {
   from { transform: translateX(100%); }
   to { transform: translateX(0); }
 }
-
 @keyframes slideOutRight {
   from { transform: translateX(0); }
   to { transform: translateX(100%); }
 }
-
 @keyframes btnSpinner {
   to { transform: rotate(360deg); }
 }
 
-/* ================================================================
-   CLASSES DE ANIMACAO
-   ================================================================ */
-
+/* CLASSES DE ANIMACAO */
 .anim-fade-in-up {
   animation: fadeInUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
-
 .anim-fade-in {
   animation: fadeIn 0.3s ease forwards;
 }
-
 .anim-scale-in {
   animation: scaleIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
-
 .anim-slide-in-right {
   animation: slideInRight 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
-
 .anim-delay-1 { animation-delay: 0.05s; }
 .anim-delay-2 { animation-delay: 0.1s; }
 .anim-delay-3 { animation-delay: 0.15s; }
@@ -413,10 +320,7 @@ body {
 .anim-delay-5 { animation-delay: 0.25s; }
 .anim-delay-6 { animation-delay: 0.3s; }
 
-/* ================================================================
-   SKELETON LOADING — variantes realistas
-   ================================================================ */
-
+/* SKELETON */
 .skeleton {
   background: linear-gradient(
     90deg,
@@ -428,68 +332,55 @@ body {
   animation: shimmer 1.5s ease-in-out infinite;
   border-radius: 8px;
 }
-
 .skeleton-text {
   height: 14px;
   margin-bottom: 8px;
   border-radius: 4px;
 }
-
 .skeleton-text-sm {
   height: 10px;
   width: 60%;
   margin-bottom: 6px;
   border-radius: 4px;
 }
-
 .skeleton-title {
   height: 22px;
   width: 40%;
   margin-bottom: 16px;
   border-radius: 4px;
 }
-
 .skeleton-card {
   height: 120px;
   border-radius: 16px;
   margin-bottom: 12px;
 }
-
 .skeleton-avatar {
   width: 40px;
   height: 40px;
   border-radius: 50%;
 }
-
 .skeleton-badge {
   width: 80px;
   height: 24px;
   border-radius: 999px;
 }
 
-/* ================================================================
-   UTILITARIOS
-   ================================================================ */
-
+/* UTILITARIOS */
 .transition-all {
   transition: all 0.25s ease;
 }
-
 .transition-transform {
   transition: transform 0.25s ease;
 }
-
 .glass {
   background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
-
 .focus-ring:focus-visible {
-  outline: 2px solid var(--color-brand-gold);
+  outline: 2px solid var(--color-brand-coral);
   outline-offset: 2px;
 }
-
 .truncate {
   overflow: hidden;
   text-overflow: ellipsis;

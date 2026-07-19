@@ -1,106 +1,55 @@
 'use client'
-
-import { Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import HeaderUnificado from '@/components/HeaderUnificado'
+import { theme } from '@/theme'
 
-function PagamentoFracassoContent() {
-  const searchParams = useSearchParams()
-  const paymentId = searchParams.get('payment_id')
-  const status = searchParams.get('status')
-  const message = searchParams.get('message') || 'Ocorreu um erro ao processar o seu pagamento. Por favor, tente novamente.'
+const COLORS = theme.colors
+const SERIF = theme.fonts.serif
+const SANS = theme.fonts.sans
 
-  const styles = {
-    container: {
-      minHeight: '100vh',
-      backgroundColor: '#f5ede0',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '20px',
-      fontFamily: 'Arial, Helvetica, sans-serif',
-    },
-    card: {
-      backgroundColor: '#ffffff',
-      borderRadius: '12px',
-      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-      padding: '40px',
-      maxWidth: '480px',
-      width: '100%',
-      textAlign: 'center',
-    },
-    title: {
-      color: '#4a3728',
-      fontSize: '28px',
-      fontWeight: 'bold',
-      margin: '0 0 16px 0',
-    },
-    messageText: {
-      color: '#5a4a3a',
-      fontSize: '16px',
-      lineHeight: '1.5',
-      margin: '0 0 24px 0',
-    },
-    detail: {
-      color: '#7a6a5a',
-      fontSize: '14px',
-      margin: '0 0 8px 0',
-    },
-    detailValue: {
-      fontWeight: 'bold',
-      color: '#4a3728',
-    },
-    detailsContainer: {
-      backgroundColor: '#faf6f0',
-      borderRadius: '8px',
-      padding: '16px',
-      margin: '0 0 24px 0',
-    },
-    link: {
-      display: 'inline-block',
-      backgroundColor: '#4a3728',
-      color: '#ffffff',
-      textDecoration: 'none',
-      padding: '12px 28px',
-      borderRadius: '8px',
-      fontSize: '16px',
-      fontWeight: 'bold',
-    },
-  }
-
+export default function PedidoFracassoPage() {
   return (
-    <div style={styles.container}>
-      <div style={styles.card}>
-        <h1 style={styles.title}>Pagamento nao aprovado</h1>
-        <p style={styles.messageText}>{message}</p>
-
-        {(paymentId || status) && (
-          <div style={styles.detailsContainer}>
-            {paymentId && (
-              <p style={styles.detail}>
-                ID do pagamento: <span style={styles.detailValue}>{paymentId}</span>
-              </p>
-            )}
-            {status && (
-              <p style={styles.detail}>
-                Status: <span style={styles.detailValue}>{status}</span>
-              </p>
-            )}
+    <div style={{ minHeight: '100vh', background: COLORS.bg, fontFamily: SANS }}>
+      <HeaderUnificado variante="simples" />
+      <div style={{ maxWidth: '500px', margin: '0 auto', padding: '80px 24px', textAlign: 'center' }}>
+        <div style={{
+          background: COLORS.white, borderRadius: 16, padding: '48px 32px',
+          border: '1px solid ' + COLORS.border
+        }}>
+          <div style={{
+            width: 72, height: 72, borderRadius: '50%',
+            background: '#FEE2E2', display: 'flex',
+            alignItems: 'center', justifyContent: 'center',
+            margin: '0 auto 24px'
+          }}>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#B91C1C" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" />
+            </svg>
           </div>
-        )}
 
-        <Link href="/cardapio" style={styles.link}>
-          Tentar novamente
-        </Link>
+          <h1 style={{ fontFamily: SERIF, fontSize: '26px', color: COLORS.dark, fontWeight: 700, margin: '0 0 8px 0' }}>
+            Pagamento nao confirmado
+          </h1>
+          <p style={{ fontSize: '14px', color: COLORS.textSecondary, margin: '0 0 32px 0', lineHeight: 1.6 }}>
+            O pagamento do seu pedido nao foi concluido. Se o valor foi descontado, ele sera estornado em ate 5 dias uteis.
+          </p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <Link href="/cardapio" className="btn btn-primary" style={{ textDecoration: 'none' }}>
+              Tentar novamente
+            </Link>
+            <Link href="/pedidos" style={{
+              padding: '12px 28px', borderRadius: 999,
+              border: '1.5px solid ' + COLORS.border,
+              color: COLORS.dark, fontSize: '14px', fontWeight: 600,
+              fontFamily: SANS, textDecoration: 'none',
+              display: 'inline-block'
+            }}>
+              Meus pedidos
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
-  )
-}
-
-export default function PagamentoFracassoPage() {
-  return (
-    <Suspense fallback={<div style={{ padding: 40, textAlign: 'center', fontFamily: 'Arial, sans-serif' }}>Carregando...</div>}>
-      <PagamentoFracassoContent />
-    </Suspense>
   )
 }

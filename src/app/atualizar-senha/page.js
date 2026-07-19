@@ -1,159 +1,130 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
+import HeaderUnificado from '@/components/HeaderUnificado'
+import { theme } from '@/theme'
+
+const COLORS = theme.colors
+const SERIF = theme.fonts.serif
+const SANS = theme.fonts.sans
 
 export default function AtualizarSenhaPage() {
   const router = useRouter()
-  const [novaSenha, setNovaSenha] = useState('')
-  const [confirmarSenha, setConfirmarSenha] = useState('')
-  const [mensagem, setMensagem] = useState(null)
-  const [processando, setProcessando] = useState(true)
+  const [senha, setSenha] = useState('')
+  const [confirmar, setConfirmar] = useState('')
+  const [erro, setErro] = useState('')
+  const [sucesso, setSucesso] = useState(false)
   const [enviando, setEnviando] = useState(false)
 
   useEffect(() => {
-    const handleRecovery = async () => {
-      const { data, error } = await supabase.auth.getSession()
-
-      if (error) {
-        setMensagem({ tipo: 'erro', texto: 'Link inválido ou expirado. Solicite uma nova redefinição de senha.' })
-        setProcessando(false)
-        return
+    supabase.auth.onAuthStateChange(async (event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        // continua na pagina
       }
-
-      setProcessando(false)
-    }
-
-    handleRecovery()
+    })
   }, [])
 
   async function handleSubmit(e) {
     e.preventDefault()
-    setMensagem(null)
+    setErro('')
 
-    if (novaSenha.length < 6) {
-      setMensagem({ tipo: 'erro', texto: 'A senha deve ter no mínimo 6 caracteres.' })
+    if (senha.length < 6) {
+      setErro('A senha deve ter no minimo 6 caracteres.')
       return
     }
-
-    if (novaSenha !== confirmarSenha) {
-      setMensagem({ tipo: 'erro', texto: 'As senhas não conferem.' })
+    if (senha !== confirmar) {
+      setErro('As senhas nao conferem.')
       return
     }
 
     setEnviando(true)
+    const { error } = await supabase.auth.updateUser({ password: senha })
+    setEnviando(false)
 
-    try {
-      const { error } = await supabase.auth.updateUser({
-        password: novaSenha
-      })
-
-      if (error) {
-        setMensagem({ tipo: 'erro', texto: error.message || 'Erro ao redefinir senha.' })
-      } else {
-        setMensagem({ tipo: 'sucesso', texto: 'Senha redefinida com sucesso! Redirecionando...' })
-        setTimeout(() => {
-          router.push('/login')
-        }, 2000)
-      }
-    } catch (err) {
-      setMensagem({ tipo: 'erro', texto: 'Erro ao redefinir senha. Tente novamente.' })
-    } finally {
-      setEnviando(false)
+    if (error) {
+      setErro(error.message || 'Erro ao redefinir senha.')
+      return
     }
-  }
 
-  if (processando) {
-    return (
-      <div style={{ maxWidth: 400, margin: '80px auto', textAlign: 'center', fontFamily: 'Arial, sans-serif' }}>
-        <p style={{ color: '#666' }}>Processando link de redefinição...</p>
-      </div>
-    )
+    setSucesso(true)
+    setTimeout(() => router.push('/login'), 3000)
   }
 
   return (
-    <div style={{ maxWidth: 400, margin: '80px auto', padding: '0 20px', fontFamily: 'Arial, sans-serif' }}>
-      <h1 style={{ textAlign: 'center', fontSize: 24, color: '#2D1B0E', marginBottom: 32 }}>
-        Redefinir senha
-      </h1>
+    <div style={{ minHeight: '100vh', background: COLORS.bg, fontFamily: SANS }}>
+      <HeaderUnificado variante="simples" />
 
-      {mensagem && (
+      <div style={{ maxWidth: '400px', margin: '0 auto', padding: '80px 24px' }}>
         <div style={{
-          padding: '12px 16px',
-          borderRadius: 8,
-          marginBottom: 20,
-          fontSize: 14,
-          background: mensagem.tipo === 'erro' ? '#FEE2E2' : '#D1FAE5',
-          color: mensagem.tipo === 'erro' ? '#991B1B' : '#065F46',
-          textAlign: 'center'
+          background: COLORS.white, borderRadius: 16, padding: '40px 32px',
+          border: '1px solid ' + COLORS.border,
+          boxShadow: '0 2px 12px rgba(0,0,0,0.06)'
         }}>
-          {mensagem.texto}
-        </div>
-      )}
+          {sucesso ? (
+            <>
+              <h1 style={{ fontFamily: SERIF, fontSize: '22px', color: COLORS.dark, margin: '0 0 12px 0', textAlign: 'center' }}>
+                Senha redefinida!
+              </h1>
+              <p style={{ fontSize: '14px', color: COLORS.textSecondary, textAlign: 'center', margin: 0, lineHeight: 1.6 }}>
+                Sua senha foi alterada com sucesso. Redirecionando para o login...
+              </p>
+            </>
+          ) : (
+            <>
+              <h1 style={{ fontFamily: SERIF, fontSize: '22px', color: COLORS.dark, margin: '0 0 8px 0', textAlign: 'center' }}>
+                Redefinir senha
+              </h1>
+              <p style={{ fontSize: '14px', color: COLORS.textSecondary, margin: '0 0 28px 0', textAlign: 'center' }}>
+                Escolha uma nova senha para sua conta.
+              </p>
 
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <div>
-          <label style={{ display: 'block', marginBottom: 6, fontSize: 14, fontWeight: 600, color: '#2D1B0E' }}>
-            Nova senha
-          </label>
-          <input
-            type="password"
-            value={novaSenha}
-            onChange={(e) => setNovaSenha(e.target.value)}
-            placeholder="Mínimo 6 caracteres"
-            required
-            style={{
-              width: '100%',
-              padding: '12px 14px',
-              borderRadius: 8,
-              border: '1px solid #E8E0D8',
-              fontSize: 14,
-              outline: 'none',
-              boxSizing: 'border-box'
-            }}
-          />
-        </div>
+              {erro && (
+                <div style={{
+                  padding: '12px 16px', borderRadius: 10,
+                  background: '#FEE2E2', color: '#B91C1C',
+                  fontSize: '13px', fontWeight: 600, marginBottom: 20
+                }}>
+                  {erro}
+                </div>
+              )}
 
-        <div>
-          <label style={{ display: 'block', marginBottom: 6, fontSize: 14, fontWeight: 600, color: '#2D1B0E' }}>
-            Confirmar nova senha
-          </label>
-          <input
-            type="password"
-            value={confirmarSenha}
-            onChange={(e) => setConfirmarSenha(e.target.value)}
-            placeholder="Repita a senha"
-            required
-            style={{
-              width: '100%',
-              padding: '12px 14px',
-              borderRadius: 8,
-              border: '1px solid #E8E0D8',
-              fontSize: 14,
-              outline: 'none',
-              boxSizing: 'border-box'
-            }}
-          />
+              <form onSubmit={handleSubmit}>
+                <div className="input-group" style={{ marginBottom: 16 }}>
+                  <label className="input-label">Nova senha</label>
+                  <input
+                    type="password"
+                    value={senha}
+                    onChange={(e) => setSenha(e.target.value)}
+                    placeholder="Minimo 6 caracteres"
+                    required
+                    className="input"
+                  />
+                </div>
+                <div className="input-group" style={{ marginBottom: 24 }}>
+                  <label className="input-label">Confirmar nova senha</label>
+                  <input
+                    type="password"
+                    value={confirmar}
+                    onChange={(e) => setConfirmar(e.target.value)}
+                    placeholder="Repita a senha"
+                    required
+                    className="input"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={enviando}
+                  className={`btn btn-primary${enviando ? ' btn-loading' : ''}`}
+                  style={{ width: '100%' }}
+                >
+                  {enviando ? 'Redefinindo...' : 'Redefinir senha'}
+                </button>
+              </form>
+            </>
+          )}
         </div>
-
-        <button
-          type="submit"
-          disabled={enviando}
-          style={{
-            padding: '14px 28px',
-            borderRadius: 8,
-            border: 'none',
-            background: enviando ? '#999' : '#C4975A',
-            color: '#fff',
-            fontSize: 15,
-            fontWeight: 700,
-            cursor: enviando ? 'not-allowed' : 'pointer',
-            marginTop: 8
-          }}
-        >
-          {enviando ? 'Redefinindo...' : 'Redefinir senha'}
-        </button>
-      </form>
+      </div>
     </div>
   )
 }

@@ -2,30 +2,14 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
-import Header from '@/components/Header'
+import HeaderUnificado from '@/components/HeaderUnificado'
 import { storeConfig } from '@/config/store'
+import { theme } from '@/theme'
+import { formatarPreco, formatarData, formatarTelefone, getStatusLabel, getStatusColor } from '@/lib/utils'
 
-const SERIF = '"Playfair Display", Georgia, serif'
-const SANS = '"Plus Jakarta Sans", sans-serif'
-
-const COLORS = {
-  background: '#fdf8f3',
-  white: '#ffffff',
-  primary: '#8b4513',
-  primaryDark: '#5c2e0c',
-  secondary: '#d4a574',
-  accent: '#c9a96e',
-  text: '#3d2817',
-  textLight: '#7a6a5a',
-  border: '#e8ddd0',
-  success: '#4caf50',
-  warning: '#ff9800',
-  danger: '#f44336',
-  info: '#2196f3',
-  lightGray: '#f5f5f5',
-  mediumGray: '#e0e0e0',
-  darkGray: '#9e9e9e'
-}
+const COLORS = theme.colors
+const SERIF = theme.fonts.serif
+const SANS = theme.fonts.sans
 
 const STATUS_LABELS = {
   pendente: 'Aguardando pagamento',
@@ -36,50 +20,11 @@ const STATUS_LABELS = {
   entregue: 'Entregue',
   cancelado: 'Cancelado'
 }
-
 const STATUS_LIST = storeConfig.pedido.orderStatuses.map(status => ({
   value: status,
   label: STATUS_LABELS[status] || status
 }))
-
 const emailsAdmin = storeConfig.admin.adminEmails
-
-function formatarData(dataISO) {
-  if (!dataISO) return ''
-  const data = new Date(dataISO)
-  const dia = String(data.getDate()).padStart(2, '0')
-  const mes = String(data.getMonth() + 1).padStart(2, '0')
-  const ano = data.getFullYear()
-  const hora = String(data.getHours()).padStart(2, '0')
-  const min = String(data.getMinutes()).padStart(2, '0')
-  return `${dia}/${mes}/${ano} ${hora}:${min}`
-}
-
-function formatarPreco(valor) {
-  if (valor == null) return 'R$ 0,00'
-  return `R$ ${Number(valor).toFixed(2).replace('.', ',')}`
-}
-
-function getStatusColor(status) {
-  const colors = {
-    pendente: COLORS.warning,
-    confirmado: COLORS.info,
-    preparando: COLORS.secondary,
-    pronto: COLORS.accent,
-    saiu_entrega: COLORS.primary,
-    entregue: COLORS.success,
-    cancelado: COLORS.danger
-  }
-  return colors[status] || COLORS.darkGray
-}
-
-function formatarTelefone(telefone) {
-  if (!telefone) return '\u2014'
-  const d = String(telefone).replace(/\D/g, '')
-  if (d.length === 11) return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`
-  if (d.length === 10) return `(${d.slice(0,2)}) ${d.slice(2,6)}-${d.slice(6)}`
-  return telefone
-}
 
 function hoje() {
   const d = new Date()
@@ -105,17 +50,12 @@ export default function AdminPedidosPage() {
 
   useEffect(() => {
     async function verificarAdmin() {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) {
-        router.push('/admin/login')
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user || !emailsAdmin.includes(user.email)) {
+        router.push('/login')
         return
       }
-      const email = session.user.email
-      if (!emailsAdmin.includes(email)) {
-        router.push('/')
-        return
-      }
-      setUser(session.user)
+      setUser(user)
       setAdminVerificado(true)
     }
     verificarAdmin()
@@ -158,23 +98,23 @@ export default function AdminPedidosPage() {
           novoStatus: confirmNovoStatus
         })
       })
-      const data = await res.json()
-      if (data.success) {
-        setPedidos(pedidos.map(p =>
-          p.id === confirmPedidoId ? { ...p, status: confirmNovoStatus } : p
-        ))
-      } else {
-        alert('Erro ao atualizar status: ' + (data.error || 'Erro desconhecido'))
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        alert(err.error || 'Erro ao atualizar status.')
+        return
       }
-    } catch (err) {
-      console.error('Erro ao alterar status:', err)
+      setPedidos(prev => prev.map(p =>
+        p.id === confirmPedidoId ? { ...p, status: confirmNovoStatus } : p
+      ))
+    } catch {
       alert('Erro ao conectar com o servidor. Tente novamente.')
+    } finally {
+      setConfirmEnviando(false)
+      setAtualizando(null)
+      setConfirmModalOpen(false)
+      setConfirmPedidoId(null)
+      setConfirmNovoStatus(null)
     }
-    setConfirmEnviando(false)
-    setAtualizando(null)
-    setConfirmModalOpen(false)
-    setConfirmPedidoId(null)
-    setConfirmNovoStatus(null)
   }
 
   function handleCancelarAlteracao() {
@@ -263,33 +203,53 @@ export default function AdminPedidosPage() {
     cancelado: pedidos.filter(p => p.status === 'cancelado').length
   }
 
+  function getStatusColorLocal(status) {
+    const colors = {
+      pendente: COLORS.warning,
+      confirmado: COLORS.info,
+      preparando: COLORS.secondary,
+      pronto: COLORS.accent,
+      saiu_entrega: COLORS.primary,
+      entregue: COLORS.success,
+      cancelado: COLORS.danger
+    }
+    return colors[status] || COLORS.darkGray
+  }
+
   return (
-    <div style={{ minHeight: '100vh', background: COLORS.background }}>
-      <Header user={user} />
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 20px' }}>
-        <h1 style={{ fontFamily: SERIF, fontSize: 36, color: COLORS.primary, marginBottom: 30 }}>
-          Admin - Pedidos
+    <div style={{ background: COLORS.background, minHeight: '100vh', fontFamily: SANS }}>
+      <HeaderUnificado />
+
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
+        <h1 style={{ fontFamily: SERIF, fontSize: '28px', color: COLORS.text, marginBottom: 24 }}>
+          Admin — Pedidos
         </h1>
 
+        {/* Stats cards */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 16, marginBottom: 30 }}>
           <div style={{ background: COLORS.white, borderRadius: 12, padding: 20, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
             <p style={{ fontFamily: SANS, fontSize: 13, color: COLORS.textLight, margin: 0, marginBottom: 8 }}>Total</p>
             <p style={{ fontFamily: SERIF, fontSize: 28, color: COLORS.text, margin: 0 }}>{stats.total}</p>
           </div>
           {STATUS_LIST.map(({ value, label }) => (
-            <div key={value} style={{ background: COLORS.white, borderRadius: 12, padding: 20, boxShadow: '0 2px 8px rgba(0,0,0,0.08)', borderTop: `3px solid ${getStatusColor(value)}` }}>
+            <div key={value} style={{
+              background: COLORS.white, borderRadius: 12, padding: 20,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+              borderTop: `3px solid ${getStatusColorLocal(value)}`
+            }}>
               <p style={{ fontFamily: SANS, fontSize: 13, color: COLORS.textLight, margin: 0, marginBottom: 8 }}>{label}</p>
-              <p style={{ fontFamily: SERIF, fontSize: 28, color: getStatusColor(value), margin: 0 }}>{stats[value] || 0}</p>
+              <p style={{ fontFamily: SERIF, fontSize: 28, color: getStatusColorLocal(value), margin: 0 }}>{stats[value] || 0}</p>
             </div>
           ))}
         </div>
 
+        {/* Filtro data */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
           <label style={{ fontFamily: SANS, fontSize: 14, color: COLORS.text, fontWeight: 600 }}>Filtrar por data:</label>
           <input type="date" value={filtroData} onChange={(e) => setFiltroData(e.target.value)}
             style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid ' + COLORS.border, fontFamily: SANS, fontSize: 14, color: COLORS.text, background: COLORS.white, outline: 'none' }} />
           <button onClick={() => setFiltroData(hoje())}
-            style={{ padding: '8px 16px', borderRadius: 20, border: '1px solid ' + (filtroData === hoje() ? COLORS.primary : COLORS.border), background: filtroData === hoje() ? COLORS.primary : COLORS.white, color: filtroData === hoje() ? COLORS.white : COLORS.text, fontFamily: SANS, fontSize: 13, fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}>
+            style={{ padding: '8px 16px', borderRadius: 20, border: '1px solid ' + COLORS.primary, background: COLORS.primary, color: COLORS.white, fontFamily: SANS, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
             Hoje
           </button>
           {filtroData && (
@@ -300,21 +260,36 @@ export default function AdminPedidosPage() {
           )}
         </div>
 
+        {/* Filtro status + export */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 24 }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             <button onClick={() => setFiltro('todos')}
-              style={{ padding: '8px 16px', borderRadius: 20, border: `1px solid ${filtro === 'todos' ? COLORS.primary : COLORS.border}`, background: filtro === 'todos' ? COLORS.primary : COLORS.white, color: filtro === 'todos' ? COLORS.white : COLORS.text, fontFamily: SANS, fontSize: 14, cursor: 'pointer', transition: 'all 0.2s' }}>
+              style={{
+                padding: '8px 16px', borderRadius: 20, border: 'none',
+                background: filtro === 'todos' ? COLORS.primary : COLORS.lightGray,
+                color: filtro === 'todos' ? COLORS.white : COLORS.textLight,
+                fontFamily: SANS, fontSize: 13, fontWeight: 600, cursor: 'pointer'
+              }}>
               Todos ({stats.total})
             </button>
             {STATUS_LIST.map(({ value, label }) => (
               <button key={value} onClick={() => setFiltro(value)}
-                style={{ padding: '8px 16px', borderRadius: 20, border: `1px solid ${filtro === value ? getStatusColor(value) : COLORS.border}`, background: filtro === value ? getStatusColor(value) : COLORS.white, color: filtro === value ? COLORS.white : COLORS.text, fontFamily: SANS, fontSize: 14, cursor: 'pointer', transition: 'all 0.2s' }}>
+                style={{
+                  padding: '8px 16px', borderRadius: 20, border: 'none',
+                  background: filtro === value ? getStatusColorLocal(value) : COLORS.lightGray,
+                  color: filtro === value ? COLORS.white : COLORS.textLight,
+                  fontFamily: SANS, fontSize: 13, fontWeight: 600, cursor: 'pointer'
+                }}>
                 {label} ({stats[value] || 0})
               </button>
             ))}
           </div>
           <button onClick={exportarParaCSV}
-            style={{ padding: '10px 24px', borderRadius: 8, border: '1px solid ' + COLORS.primary, background: COLORS.primary, color: COLORS.white, fontFamily: SANS, fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.2s' }}>
+            style={{
+              padding: '10px 24px', borderRadius: 8, border: '1px solid ' + COLORS.primary,
+              background: COLORS.primary, color: COLORS.white, fontFamily: SANS,
+              fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8
+            }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
             </svg>
@@ -322,35 +297,45 @@ export default function AdminPedidosPage() {
           </button>
         </div>
 
+        {/* Loading */}
         {loading && (
           <div style={{ textAlign: 'center', padding: 60 }}>
             <p style={{ fontFamily: SANS, color: COLORS.textLight, fontSize: 18 }}>Carregando pedidos...</p>
           </div>
         )}
 
+        {/* Vazio */}
         {!loading && pedidosFiltrados.length === 0 && (
           <div style={{ textAlign: 'center', padding: 60, background: COLORS.white, borderRadius: 12 }}>
             <p style={{ fontFamily: SANS, color: COLORS.textLight, fontSize: 18 }}>Nenhum pedido encontrado.</p>
           </div>
         )}
 
+        {/* Lista */}
         {!loading && pedidosFiltrados.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {pedidosFiltrados.map((pedido) => {
               const expandido = pedidoExpandido === pedido.id
               return (
-                <div
-                  key={pedido.id}
-                  style={{ background: COLORS.white, borderRadius: 12, padding: 24, boxShadow: '0 2px 8px rgba(0,0,0,0.08)', cursor: 'pointer', transition: 'all 0.2s', borderLeft: `4px solid ${getStatusColor(pedido.status)}` }}
+                <div key={pedido.id}
+                  style={{
+                    background: COLORS.white, borderRadius: 12, padding: 24,
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.08)', cursor: 'pointer',
+                    borderLeft: `4px solid ${getStatusColorLocal(pedido.status)}`
+                  }}
                   onClick={() => setPedidoExpandido(expandido ? null : pedido.id)}>
-
+                  {/* Cabecalho */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12, marginBottom: 12 }}>
                     <div style={{ flex: 1 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                         <p style={{ fontFamily: SERIF, fontSize: 20, color: COLORS.text, margin: 0 }}>
                           Pedido #{pedido.id ? pedido.id.slice(0, 8).toUpperCase() : '\u2014'}
                         </p>
-                        <span style={{ padding: '4px 12px', borderRadius: 20, background: getStatusColor(pedido.status), color: COLORS.white, fontFamily: SANS, fontSize: 12, fontWeight: 600 }}>
+                        <span style={{
+                          padding: '4px 12px', borderRadius: 20,
+                          background: getStatusColorLocal(pedido.status),
+                          color: COLORS.white, fontFamily: SANS, fontSize: 12, fontWeight: 600
+                        }}>
                           {STATUS_LABELS[pedido.status] || pedido.status}
                         </span>
                       </div>
@@ -371,9 +356,10 @@ export default function AdminPedidosPage() {
                     </span>
                   </div>
 
+                  {/* Detalhes expandidos */}
                   {expandido && (
-                    <div style={{ marginTop: 20, borderTop: '1px solid ' + COLORS.border, paddingTop: 20 }}>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 16, marginBottom: 20 }}>
+                    <div onClick={(e) => e.stopPropagation()} style={{ marginTop: 20 }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 16, marginBottom: 20 }}>
                         <div style={{ background: COLORS.lightGray, borderRadius: 8, padding: 14 }}>
                           <p style={{ fontFamily: SANS, fontSize: 11, color: COLORS.textLight, textTransform: 'uppercase', letterSpacing: 1, margin: '0 0 8px', fontWeight: 700 }}>Dados do Cliente</p>
                           <div style={{ fontFamily: SANS, fontSize: 13, color: COLORS.text, lineHeight: 1.8 }}>
@@ -415,6 +401,7 @@ export default function AdminPedidosPage() {
                         </div>
                       </div>
 
+                      {/* Tabela de itens */}
                       {pedido.itens && (
                         <div style={{ background: COLORS.lightGray, borderRadius: 8, padding: 16, marginBottom: 20 }}>
                           <p style={{ fontFamily: SANS, fontSize: 11, color: COLORS.textLight, textTransform: 'uppercase', letterSpacing: 1, margin: '0 0 10px', fontWeight: 700 }}>Itens do Pedido</p>
@@ -424,7 +411,7 @@ export default function AdminPedidosPage() {
                                 <th style={{ textAlign: 'left', padding: '6px 8px', fontWeight: 600 }}>Produto</th>
                                 <th style={{ textAlign: 'center', padding: '6px 8px', fontWeight: 600 }}>Qtd</th>
                                 <th style={{ textAlign: 'right', padding: '6px 8px', fontWeight: 600 }}>Preco</th>
-                                <th style={{ textAlign: 'right', padding: '6px 8px', fontWeight: 600 }}>Total</th>
+                                <th style={{ textAlign: 'right', padding: '6px 8px', fontWeight: 600 }}>Subtotal</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -447,6 +434,7 @@ export default function AdminPedidosPage() {
                         </div>
                       )}
 
+                      {/* Alterar status */}
                       <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', paddingTop: 12, borderTop: '1px solid ' + COLORS.border }}>
                         <span style={{ fontFamily: SANS, fontSize: 13, color: COLORS.textLight, fontWeight: 600 }}>Alterar status:</span>
                         <select
@@ -471,17 +459,26 @@ export default function AdminPedidosPage() {
         )}
       </div>
 
+      {/* Modal de confirmacao */}
       {confirmModalOpen && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(45, 27, 14, 0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}
-          onClick={handleCancelarAlteracao}>
-          <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 16, padding: '32px', maxWidth: '420px', width: '100%', boxShadow: '0 8px 32px rgba(45,27,14,0.15)' }}>
-            <h3 style={{ fontFamily: SERIF, fontSize: 20, color: COLORS.text, margin: '0 0 8px', fontWeight: 700 }}>Alterar status do pedido?</h3>
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 99999,
+          background: 'rgba(45, 27, 14, 0.5)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px'
+        }} onClick={handleCancelarAlteracao}>
+          <div style={{
+            background: COLORS.white, borderRadius: 16, padding: 32,
+            maxWidth: 480, width: '100%', boxShadow: '0 8px 32px rgba(0,0,0,0.15)'
+          }} onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ fontFamily: SERIF, fontSize: 20, color: COLORS.text, margin: '0 0 8px' }}>
+              Alterar Status
+            </h3>
             <p style={{ fontFamily: SANS, fontSize: 14, color: COLORS.textLight, margin: '0 0 24px', lineHeight: 1.5 }}>
-              Tem certeza que deseja alterar o status do pedido <strong>#{String(confirmPedidoId || '').slice(0, 8).toUpperCase()}</strong> para <strong style={{ color: getStatusColor(confirmNovoStatus) }}>{STATUS_LABELS[confirmNovoStatus] || confirmNovoStatus}</strong>?
+              Tem certeza que deseja alterar o status do pedido <strong>#{String(confirmPedidoId || '').slice(0, 8).toUpperCase()}</strong> para <strong style={{ color: getStatusColorLocal(confirmNovoStatus) }}>{STATUS_LABELS[confirmNovoStatus] || confirmNovoStatus}</strong>?
             </p>
             {confirmNovoStatus === 'saiu_entrega' && (
-              <p style={{ fontFamily: SANS, fontSize: 13, color: COLORS.primary, margin: '0 0 20px', padding: '10px 14px', background: '#FFF8F0', borderRadius: 8, border: '1px solid #E8D9C5', lineHeight: 1.4 }}>
-                Um email de notificacao sera enviado automaticamente para o cliente avisando que o pedido saiu para entrega.
+              <p style={{ fontFamily: SANS, fontSize: 13, color: '#B45309', background: '#FEF3C7', padding: '10px 14px', borderRadius: 8, margin: '0 0 16px', lineHeight: 1.4 }}>
+                O cliente recebera uma notificacao de que o pedido saiu para entrega.
               </p>
             )}
             <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
@@ -490,7 +487,7 @@ export default function AdminPedidosPage() {
                 Cancelar
               </button>
               <button onClick={handleConfirmarAlteracao} disabled={confirmEnviando}
-                style={{ padding: '10px 24px', borderRadius: 999, border: 'none', background: getStatusColor(confirmNovoStatus), color: 'white', fontSize: 14, fontWeight: 600, fontFamily: SANS, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', opacity: confirmEnviando ? 0.6 : 1 }}>
+                style={{ padding: '10px 24px', borderRadius: 999, border: 'none', background: getStatusColorLocal(confirmNovoStatus), color: 'white', fontSize: 14, fontWeight: 600, fontFamily: SANS, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', opacity: confirmEnviando ? 0.6 : 1 }}>
                 {confirmEnviando ? 'Alterando...' : 'Sim, alterar'}
               </button>
             </div>

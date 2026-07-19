@@ -1,152 +1,101 @@
-// Configuração central da loja Tortas da Lika
-// Contém todos os parâmetros utilizados pelo sistema de e-commerce
+// Configuracao central do template ecommerce-base
+// Edite os valores abaixo para personalizar para sua marca
 
-// Identidade da marca
 const identidade = {
-  name: 'Tortas da Lika',
-  subtitle: 'Confeitaria Artesanal',
-  tagline: 'Fatias que contam histórias',
-  description: 'Confeitaria artesanal especializada em tortas e fatias gourmet. Feitas sob encomenda com ingredientes selecionados e entregues com carinho em Rio Grande e região.',
+  name: 'Sua Loja',
+  subtitle: 'Sua Marca',
+  tagline: 'Seu slogan aqui',
+  description: 'Descricao da sua loja. Edite em src/config/store.js.',
   foundedYear: 2024,
   currency: 'BRL',
   locale: 'pt-BR'
 };
 
-// Informações de contato
 const contato = {
-  email: 'tortasdalika@outlook.com',
+  email: 'seu@email.com',
   phone: '(53) 99999-9999',
-  instagram: '@tortasdalika'
+  instagram: '@seudelivery'
 };
 
-// Endereço da confeitaria
 const endereco = {
-  street: '',
-  number: '',
-  neighborhood: '',
-  city: 'Rio Grande',
-  state: 'RS',
-  zip: ''
+  street: '', number: '', neighborhood: '',
+  city: 'Sua Cidade', state: 'RS', zip: ''
 };
 
-// Configurações de logo e identidade visual
 const logo = {
-  default: '/logos/logo-default.svg',
-  light: '/logos/logo-light.svg',
-  dark: '/logos/logo-dark.svg',
-  favicon: '/logos/favicon.svg',
-  generatedFilenames: ['logo-default.svg', 'logo-light.svg', 'logo-dark.svg', 'logo-monogram.svg', 'logo-badge.svg', 'favicon.svg']
+  url: '/logo.png', alt: 'Sua Loja', width: 38, height: 38
 };
 
-// Configurações de entrega
 const entrega = {
-  cities: ['Rio Grande'],
-  maxDistanceKm: 15,
-  costPerKm: 0.85,
-  baseFee: 5.00,
-  freeDeliveryMinimum: null,
-  cutoffTime: '18:30',
-  leadTimeHours: 24,
+  cities: ['Sua Cidade'],
+  maxDistanceKm: 15, costPerKm: 0.85, baseFee: 5.00,
+  freeDeliveryMinimum: null, cutoffTime: '18:30', leadTimeHours: 24,
   timeSlots: [
-    { label: 'Manhã (9h às 12h)', value: 'manha' },
-    { label: 'Tarde (13h às 18h)', value: 'tarde' }
+    { label: 'Manha (9h as 12h)', value: 'manha' },
+    { label: 'Tarde (13h as 18h)', value: 'tarde' }
   ]
 };
 
-// Configurações de pedido
 const pedido = {
-  minOrderValue: 15.00,
-  maxItemsPerProduct: 10,
+  minOrderValue: 15.00, maxItemsPerProduct: 10,
   defaultOrderStatus: 'pendente',
   orderStatuses: ['pendente', 'confirmado', 'preparando', 'pronto', 'saiu_entrega', 'entregue', 'cancelado']
 };
 
-// Configurações de pagamento
 const pagamento = {
   methods: ['pix', 'credit_card'],
   installments: { max: 3, minInstallmentValue: 10.00 },
   pix: { enabled: true, discountPercent: 5 }
 };
 
-// Horário de funcionamento
 const horarioFuncionamento = {
   weekday: { open: '09:00', close: '18:30' },
   saturday: { open: '09:00', close: '13:00' },
   sunday: null
 };
 
-// Configurações administrativas
 const admin = {
-  adminEmails: ['tortasdalika@outlook.com', 'gdspereira@hotmail.com']
+  adminEmails: ['admin@seudominio.com']
 };
 
-// Links de navegação
 const navegacao = {
   navLinks: [
-    { href: '/cardapio', label: 'Cardápio' },
+    { href: '/cardapio', label: 'Cardapio' },
     { href: '/pedidos', label: 'Meus Pedidos' }
   ]
 };
 
-// Metadados para SEO e redes sociais
 const meta = {
-  title: 'Tortas da Lika - Confeitaria Artesanal em Rio Grande',
-  description: 'Tortas, bolos e doces artesanais feitos sob encomenda com entrega em Rio Grande, RS. Fatias que contam histórias.',
+  title: 'Sua Loja - Delivery',
+  description: 'Sua loja online com delivery. Edite em src/config/store.js.',
   openGraphImage: '/og/og-image.png'
 };
 
-// Configurações do Mercado Pago
 const mercadoPago = {
-  webhookSecret: '',
-  publicKey: ''
+  webhookSecret: '', publicKey: ''
 };
 
-// Configuração principal da loja
 export const storeConfig = {
-  identidade,
-  contato,
-  endereco,
-  logo,
-  entrega,
-  pedido,
-  pagamento,
-  horarioFuncionamento,
-  admin,
-  navegacao,
-  meta,
-  mercadoPago
+  identidade, contato, endereco, logo, entrega, pedido,
+  pagamento, horarioFuncionamento, admin, navegacao, meta, mercadoPago
 };
 
-// Clona profundamente um valor, suportando objetos e arrays
 function cloneValue(valor) {
-  if (valor === null || typeof valor !== 'object') {
-    return valor;
-  }
-  if (Array.isArray(valor)) {
-    return valor.map((item) => cloneValue(item));
-  }
+  if (valor === null || typeof valor !== 'object') return valor;
+  if (Array.isArray(valor)) return valor.map(cloneValue);
   const clone = {};
-  for (const chave of Object.keys(valor)) {
-    clone[chave] = cloneValue(valor[chave]);
-  }
+  for (const chave of Object.keys(valor)) clone[chave] = cloneValue(valor[chave]);
   return clone;
 }
 
-// Congela recursivamente um objeto, tornando-o imutável
 function deepFreeze(objeto) {
-  if (objeto === null || typeof objeto !== 'object') {
-    return objeto;
-  }
+  if (objeto === null || typeof objeto !== 'object') return objeto;
   Object.keys(objeto).forEach((chave) => {
-    const valor = objeto[chave];
-    if (valor !== null && typeof valor === 'object') {
-      deepFreeze(valor);
-    }
+    if (objeto[chave] !== null && typeof objeto[chave] === 'object') deepFreeze(objeto[chave]);
   });
   return Object.freeze(objeto);
 }
 
-// Retorna uma cópia imutável da configuração da loja
 export function getStoreConfig() {
   return deepFreeze(cloneValue(storeConfig));
 }

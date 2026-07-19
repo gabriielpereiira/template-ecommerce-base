@@ -1,38 +1,29 @@
 'use client'
 import { useState } from 'react'
-import { useAuth } from '../context/AuthContext'
-import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
-import Header from '../../components/Header'
+import Link from 'next/link'
+import { supabase } from '@/lib/supabaseClient'
+import { useAuth } from '../context/AuthContext'
+import HeaderUnificado from '@/components/HeaderUnificado'
+import { theme } from '@/theme'
+
+const COLORS = theme.colors
+const SERIF = theme.fonts.serif
+const SANS = theme.fonts.sans
 
 export default function LoginPage() {
-  const { login, usuario } = useAuth()
   const router = useRouter()
+  const { login } = useAuth()
+
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
   const [erro, setErro] = useState('')
   const [enviando, setEnviando] = useState(false)
+
   const [modalResetAberto, setModalResetAberto] = useState(false)
   const [emailReset, setEmailReset] = useState('')
-  const [enviandoReset, setEnviandoReset] = useState(false)
   const [mensagemReset, setMensagemReset] = useState(null)
-
-  if (usuario) {
-    return (
-      <>
-        <Header />
-        <div style={{ maxWidth: 400, margin: '60px auto', textAlign: 'center', padding: '0 16px' }}>
-          <h1 style={{ fontSize: 24, color: 'var(--color-brand-dark-light)', marginBottom: 16, fontFamily: 'Georgia, "Times New Roman", serif' }}>
-            Você já está logado
-          </h1>
-          <p style={{ color: 'var(--color-brand-text-secondary)', marginBottom: 24 }}>{usuario.email}</p>
-          <a href="/cardapio" className="btn btn-primary">
-            Ir para o cardápio
-          </a>
-        </div>
-      </>
-    )
-  }
+  const [enviandoReset, setEnviandoReset] = useState(false)
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -40,12 +31,11 @@ export default function LoginPage() {
     setEnviando(true)
 
     const { error } = await login(email, senha)
-
     setEnviando(false)
 
     if (error) {
       if (error.message.includes('Email not confirmed')) {
-        setErro('Seu email ainda não foi confirmado. Verifique sua caixa de entrada ou spam.')
+        setErro('Seu email ainda nao foi confirmado. Verifique sua caixa de entrada ou spam.')
       } else {
         setErro(error.message)
       }
@@ -55,11 +45,9 @@ export default function LoginPage() {
     router.push('/')
   }
 
-  async function handleResetSenha() {
-    if (!emailReset) {
-      setMensagemReset({ tipo: 'erro', texto: 'Informe seu email.' })
-      return
-    }
+  async function handleResetSenha(e) {
+    e.preventDefault()
+    if (!emailReset.trim()) return
 
     setEnviandoReset(true)
     setMensagemReset(null)
@@ -70,9 +58,9 @@ export default function LoginPage() {
       })
 
       if (error) {
-        setMensagemReset({ tipo: 'erro', texto: error.message || 'Erro ao enviar email de redefinição.' })
+        setMensagemReset({ tipo: 'erro', texto: error.message || 'Erro ao enviar email.' })
       } else {
-        setMensagemReset({ tipo: 'sucesso', texto: 'Email de redefinição enviado! Verifique sua caixa de entrada.' })
+        setMensagemReset({ tipo: 'sucesso', texto: 'Email de redefinicao enviado! Verifique sua caixa de entrada.' })
       }
     } catch {
       setMensagemReset({ tipo: 'erro', texto: 'Erro ao enviar email. Tente novamente.' })
@@ -82,223 +70,191 @@ export default function LoginPage() {
   }
 
   return (
-    <>
-      <Header />
+    <div style={{ minHeight: '100vh', background: COLORS.bg, fontFamily: SANS }}>
+      <HeaderUnificado variante="simples" />
+
       <div style={{
-        minHeight: 'calc(100vh - 64px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '40px 16px',
-        background: 'var(--color-brand-bg)',
+        maxWidth: '400px', margin: '0 auto', padding: '60px 24px'
       }}>
-        <div className="card anim-fade-in-up" style={{
-          width: '100%',
-          maxWidth: 420,
-          padding: '36px 32px',
+        <div style={{
+          background: COLORS.white, borderRadius: 16, padding: '40px 32px',
+          boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+          border: '1px solid ' + COLORS.border
         }}>
           <h1 style={{
-            fontSize: 26,
-            color: 'var(--color-brand-dark)',
-            marginBottom: 8,
-            fontFamily: 'Georgia, "Times New Roman", serif',
-            fontWeight: 700,
-            textAlign: 'center',
+            fontFamily: SERIF, fontSize: '24px', color: COLORS.dark,
+            margin: '0 0 8px 0', textAlign: 'center'
           }}>
             Entrar
           </h1>
           <p style={{
-            fontSize: 14,
-            color: 'var(--color-brand-text-secondary)',
-            marginBottom: 24,
-            textAlign: 'center',
+            fontSize: '14px', color: COLORS.textSecondary,
+            margin: '0 0 28px 0', textAlign: 'center'
           }}>
-            Acesse sua conta Tortas da Lika
+            Acesse sua conta para continuar
           </p>
 
           {erro && (
             <div style={{
-              fontSize: 13,
-              marginBottom: 16,
-              padding: '10px 14px',
-              borderRadius: 10,
-              background: 'var(--color-status-danger-bg)',
-              color: '#B91C1C',
-              border: '1px solid #FECACA',
+              padding: '12px 16px', borderRadius: 10,
+              background: '#FEE2E2', color: '#B91C1C',
+              fontSize: '13px', fontWeight: 600, marginBottom: 20
             }}>
               {erro}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div className="input-group">
-              <label className="input-label">Email</label>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="seu@email.com"
-                className="input"
-              />
-            </div>
-
-            <div className="input-group">
-              <label className="input-label">Senha</label>
-              <input
-                type="password"
-                required
-                value={senha}
-                onChange={e => setSenha(e.target.value)}
-                placeholder="Sua senha"
-                className="input"
-              />
-            </div>
-
-            <div style={{ textAlign: 'right', marginTop: -8 }}>
-              <button
-                type="button"
-                onClick={() => {
-                  setEmailReset(email)
-                  setModalResetAberto(true)
-                  setMensagemReset(null)
-                }}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--color-brand-gold)',
-                  fontSize: 13,
-                  cursor: 'pointer',
-                  textDecoration: 'none',
-                  padding: 0,
-                  fontWeight: 500,
-                  transition: 'color 0.2s',
-                }}
-                onMouseEnter={e => e.currentTarget.style.color = 'var(--color-brand-gold-dark)'}
-                onMouseLeave={e => e.currentTarget.style.color = 'var(--color-brand-gold)'}
-              >
-                Esqueceu a senha?
-              </button>
-            </div>
-
-            <button
-              type="submit"
-              disabled={enviando}
-              className="btn btn-primary btn-lg btn-block"
-              style={{ marginTop: 4 }}
-            >
-              {enviando ? 'Entrando...' : 'Entrar'}
-            </button>
-
-            <p style={{
-              textAlign: 'center',
-              fontSize: 14,
-              color: 'var(--color-brand-text-secondary)',
-              marginTop: 8,
-            }}>
-              Ainda não tem conta?{' '}
-              <a
-                href="/cadastro"
-                style={{
-                  color: 'var(--color-brand-gold)',
-                  fontWeight: 600,
-                  textDecoration: 'none',
-                  transition: 'color 0.2s',
-                }}
-                onMouseEnter={e => e.currentTarget.style.color = 'var(--color-brand-gold-dark)'}
-                onMouseLeave={e => e.currentTarget.style.color = 'var(--color-brand-gold)'}
-              >
-                Cadastre-se
-              </a>
-            </p>
-          </form>
-        </div>
-      </div>
-
-      {/* Modal de esqueceu a senha */}
-      {modalResetAberto && (
-        <div
-          style={{
-            position: 'fixed', inset: 0, zIndex: 99999,
-            background: 'rgba(45, 27, 14, 0.5)',
-            backdropFilter: 'blur(4px)',
-            WebkitBackdropFilter: 'blur(4px)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            padding: '24px',
-            animation: 'fadeIn 0.2s ease',
-          }}
-          onClick={() => setModalResetAberto(false)}
-        >
-          <div
-            onClick={e => e.stopPropagation()}
-            className="card anim-scale-in"
-            style={{
-              padding: '32px', maxWidth: '400px', width: '100%',
-            }}
-          >
-            <h2 style={{
-              fontSize: 20,
-              color: 'var(--color-brand-dark)',
-              marginBottom: 8,
-              fontFamily: 'Georgia, "Times New Roman", serif',
-              fontWeight: 700,
-            }}>
-              Redefinir senha
-            </h2>
-            <p style={{
-              fontSize: 14,
-              color: 'var(--color-brand-text-secondary)',
-              marginBottom: 20,
-            }}>
-              Digite seu email para receber o link de redefinição.
-            </p>
-
+          <form onSubmit={handleSubmit}>
             <div className="input-group" style={{ marginBottom: 16 }}>
               <label className="input-label">Email</label>
               <input
                 type="email"
-                value={emailReset}
-                onChange={e => setEmailReset(e.target.value)}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 placeholder="seu@email.com"
+                required
                 className="input"
               />
             </div>
 
+            <div className="input-group" style={{ marginBottom: 12 }}>
+              <label className="input-label">Senha</label>
+              <input
+                type="password"
+                value={senha}
+                onChange={(e) => setSenha(e.target.value)}
+                placeholder="Sua senha"
+                required
+                className="input"
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setModalResetAberto(true)}
+              style={{
+                background: 'none', border: 'none', padding: 0,
+                fontSize: '13px', color: COLORS.coral, fontWeight: 600,
+                cursor: 'pointer', fontFamily: SANS, marginBottom: 24,
+                display: 'inline-block'
+              }}
+            >
+              Esqueceu a senha?
+            </button>
+
+            <button
+              type="submit"
+              disabled={enviando}
+              className={`btn btn-primary${enviando ? ' btn-loading' : ''}`}
+              style={{ width: '100%' }}
+            >
+              {enviando ? 'Entrando...' : 'Entrar'}
+            </button>
+          </form>
+
+          <div style={{
+            textAlign: 'center', marginTop: 20,
+            fontSize: '14px', color: COLORS.textSecondary
+          }}>
+            Nao tem conta?{' '}
+            <Link href="/cadastro" style={{
+              color: COLORS.coral, fontWeight: 600, textDecoration: 'none'
+            }}>
+              Cadastre-se
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* Modal esqueceu a senha */}
+      {modalResetAberto && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 99999,
+            background: 'rgba(45, 52, 54, 0.5)',
+            backdropFilter: 'blur(4px)',
+            WebkitBackdropFilter: 'blur(4px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '24px'
+          }}
+          onClick={() => setModalResetAberto(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: COLORS.white, borderRadius: 16, padding: 32,
+              maxWidth: 400, width: '100%',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.12)'
+            }}
+          >
+            <h2 style={{
+              fontFamily: SERIF, fontSize: '20px', color: COLORS.dark,
+              margin: '0 0 8px 0'
+            }}>
+              Redefinir senha
+            </h2>
+            <p style={{
+              fontSize: '14px', color: COLORS.textSecondary,
+              margin: '0 0 20px 0', lineHeight: 1.5
+            }}>
+              Digite seu email para receber o link de redefinicao.
+            </p>
+
             {mensagemReset && (
               <div style={{
-                fontSize: 13,
-                marginBottom: 16,
-                padding: '10px 14px',
-                borderRadius: 10,
-                background: mensagemReset.tipo === 'sucesso' ? 'var(--color-status-success-bg)' : 'var(--color-status-danger-bg)',
-                color: mensagemReset.tipo === 'sucesso' ? '#047857' : '#B91C1C',
-                border: `1px solid ${mensagemReset.tipo === 'sucesso' ? '#A7F3D0' : '#FECACA'}`,
+                padding: '10px 14px', borderRadius: 10,
+                fontSize: '13px', fontWeight: 600, marginBottom: 16,
+                background: mensagemReset.tipo === 'sucesso' ? '#D1FAE5' : '#FEE2E2',
+                color: mensagemReset.tipo === 'sucesso' ? '#047857' : '#B91C1C'
               }}>
                 {mensagemReset.texto}
               </div>
             )}
 
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-              <button
-                onClick={() => {
-                  setModalResetAberto(false)
-                  setMensagemReset(null)
-                }}
-                className="btn btn-ghost"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleResetSenha}
-                disabled={enviandoReset}
-                className="btn btn-primary"
-              >
-                {enviandoReset ? 'Enviando...' : 'Enviar'}
-              </button>
-            </div>
+            <form onSubmit={handleResetSenha}>
+              <div className="input-group" style={{ marginBottom: 20 }}>
+                <label className="input-label">Email</label>
+                <input
+                  type="email"
+                  value={emailReset}
+                  onChange={(e) => setEmailReset(e.target.value)}
+                  placeholder="seu@email.com"
+                  required
+                  className="input"
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: 12 }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setModalResetAberto(false)
+                    setMensagemReset(null)
+                    setEmailReset('')
+                  }}
+                  style={{
+                    flex: 1, padding: '10px 24px', borderRadius: 999,
+                    border: '1.5px solid ' + COLORS.border,
+                    background: 'transparent', color: COLORS.textSecondary,
+                    fontSize: '14px', fontWeight: 600, fontFamily: SANS,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={enviandoReset}
+                  className={`btn btn-primary${enviandoReset ? ' btn-loading' : ''}`}
+                  style={{ flex: 1 }}
+                >
+                  {enviandoReset ? 'Enviando...' : 'Enviar'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
-    </>
+    </div>
   )
 }
