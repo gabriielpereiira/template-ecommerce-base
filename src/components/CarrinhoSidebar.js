@@ -137,18 +137,14 @@ export default function CarrinhoSidebar() {
 
   return (
     <>
-      <button
-        onClick={() => setAberto(true)}
-        style={{
-          position: 'fixed', bottom: 24, right: 24, zIndex: 999,
-          width: 60, height: 60, borderRadius: '50%',
-          background: theme.gradients.coral, border: 'none',
-          color: COLORS.white, cursor: 'pointer',
-          boxShadow: theme.shadows.button,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          transition: 'all 0.2s'
-        }}
-      >
+      <button onClick={() => setAberto(true)} style={{
+        position: 'fixed', bottom: 24, right: 24, zIndex: 999,
+        width: 60, height: 60, borderRadius: '50%',
+        background: COLORS.coral, border: 'none', color: COLORS.white,
+        cursor: 'pointer', boxShadow: '0 4px 16px rgba(255,107,107,0.3)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        transition: 'all 0.2s'
+      }}>
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" />
           <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
@@ -158,8 +154,7 @@ export default function CarrinhoSidebar() {
             position: 'absolute', top: 4, right: 4,
             background: COLORS.white, color: COLORS.coral,
             fontSize: 11, fontWeight: 700, minWidth: 20, height: 20,
-            borderRadius: '50%', display: 'flex', alignItems: 'center',
-            justifyContent: 'center'
+            borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center'
           }}>
             {itens.reduce((a, i) => a + (i.quantidade || 1), 0)}
           </span>
@@ -169,8 +164,7 @@ export default function CarrinhoSidebar() {
       {aberto && (
         <div style={{
           position: 'fixed', inset: 0, zIndex: 9998,
-          background: 'rgba(45,52,54,0.4)',
-          backdropFilter: 'blur(4px)',
+          background: 'rgba(45,52,54,0.4)', backdropFilter: 'blur(4px)',
           WebkitBackdropFilter: 'blur(4px)'
         }} onClick={() => setAberto(false)} />
       )}
@@ -187,15 +181,11 @@ export default function CarrinhoSidebar() {
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '20px 24px', borderBottom: '1px solid ' + COLORS.border
         }}>
-          <h2 style={{ fontFamily: SERIF, fontSize: '20px', color: COLORS.dark, fontWeight: 700, margin: 0 }}>
-            Sacola
-          </h2>
+          <h2 style={{ fontFamily: SERIF, fontSize: '20px', color: COLORS.dark, fontWeight: 700, margin: 0 }}>Sacola</h2>
           <button onClick={() => setAberto(false)} style={{
             background: 'none', border: 'none', cursor: 'pointer',
             color: COLORS.textSecondary, fontSize: '24px', padding: '4px'
-          }}>
-            &times;
-          </button>
+          }}>&times;</button>
         </div>
 
         <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
@@ -217,15 +207,10 @@ export default function CarrinhoSidebar() {
                     {formatarPreco(item.preco * item.quantidade)}
                   </p>
                 </div>
-                <button
-                  onClick={() => removerItem(item.product_id)}
-                  style={{
-                    background: 'none', border: 'none', color: COLORS.textSecondary,
-                    cursor: 'pointer', padding: '4px', fontSize: '18px', lineHeight: 1
-                  }}
-                >
-                  &times;
-                </button>
+                <button onClick={() => removerItem(item.product_id)} style={{
+                  background: 'none', border: 'none', color: COLORS.textSecondary,
+                  cursor: 'pointer', padding: '4px', fontSize: '18px', lineHeight: 1
+                }}>&times;</button>
               </div>
             ))
           )}
@@ -238,26 +223,14 @@ export default function CarrinhoSidebar() {
                 Calcular frete (opcional)
               </label>
               <div style={{ display: 'flex', gap: 8 }}>
-                <input
-                  value={cep}
-                  onChange={e => setCep(e.target.value.replace(/\D/g, '').slice(0, 8))}
-                  placeholder="00000-000"
-                  className="input"
-                  style={{ flex: 1 }}
-                />
-                <button
-                  onClick={calcularFrete}
-                  disabled={calculandoFrete || cep.replace(/\D/g, '').length !== 8}
-                  style={{
-                    padding: '10px 16px', borderRadius: 999,
-                    border: 'none', background: COLORS.coral,
-                    color: COLORS.white, fontSize: '13px', fontWeight: 600,
-                    fontFamily: SANS, cursor: 'pointer',
-                    opacity: cep.replace(/\D/g, '').length !== 8 ? 0.5 : 1
-                  }}
-                >
-                  {calculandoFrete ? '...' : 'Calcular'}
-                </button>
+                <input value={cep} onChange={e => setCep(e.target.value.replace(/\D/g, '').slice(0, 8))}
+                  placeholder="00000-000" className="input" style={{ flex: 1 }} />
+                <button onClick={calcularFrete} disabled={calculandoFrete || cep.replace(/\D/g, '').length !== 8} style={{
+                  padding: '10px 16px', borderRadius: 999, border: 'none',
+                  background: COLORS.coral, color: COLORS.white,
+                  fontSize: '13px', fontWeight: 600, fontFamily: SANS, cursor: 'pointer',
+                  opacity: cep.replace(/\D/g, '').length !== 8 ? 0.5 : 1
+                }}>{calculandoFrete ? '...' : 'Calcular'}</button>
               </div>
             </div>
 
@@ -266,33 +239,18 @@ export default function CarrinhoSidebar() {
                 Cupom de desconto
               </label>
               <div style={{ display: 'flex', gap: 8 }}>
-                <input
-                  value={cupom}
-                  onChange={e => { setCupom(e.target.value.toUpperCase()); setErroCupom('') }}
-                  placeholder="CUPOM10"
-                  className="input"
-                  style={{ flex: 1, textTransform: 'uppercase' }}
-                />
-                <button
-                  onClick={aplicarCupom}
-                  disabled={aplicandoCupom || !cupom.trim()}
-                  style={{
-                    padding: '10px 16px', borderRadius: 999,
-                    border: '1.5px solid ' + COLORS.coral,
-                    background: cupomData ? '#D1FAE5' : 'transparent',
-                    color: cupomData ? '#047857' : COLORS.coral,
-                    fontSize: '13px', fontWeight: 600, fontFamily: SANS,
-                    cursor: 'pointer', opacity: !cupom.trim() ? 0.5 : 1,
-                    whiteSpace: 'nowrap'
-                  }}
-                >
-                  {aplicandoCupom ? '...' : cupomData ? 'Aplicado' : 'Aplicar'}
-                </button>
+                <input value={cupom} onChange={e => { setCupom(e.target.value.toUpperCase()); setErroCupom('') }}
+                  placeholder="CUPOM10" className="input" style={{ flex: 1, textTransform: 'uppercase' }} />
+                <button onClick={aplicarCupom} disabled={aplicandoCupom || !cupom.trim()} style={{
+                  padding: '10px 16px', borderRadius: 999, border: '1.5px solid ' + COLORS.coral,
+                  background: cupomData ? '#D1FAE5' : 'transparent',
+                  color: cupomData ? '#047857' : COLORS.coral,
+                  fontSize: '13px', fontWeight: 600, fontFamily: SANS, cursor: 'pointer',
+                  opacity: !cupom.trim() ? 0.5 : 1, whiteSpace: 'nowrap'
+                }}>{aplicandoCupom ? '...' : cupomData ? 'Aplicado' : 'Aplicar'}</button>
               </div>
               {erroCupom && (
-                <p style={{ fontSize: '12px', color: COLORS.danger, margin: '4px 0 0', fontFamily: SANS }}>
-                  {erroCupom}
-                </p>
+                <p style={{ fontSize: '12px', color: '#EF4444', margin: '4px 0 0', fontFamily: SANS }}>{erroCupom}</p>
               )}
             </div>
 
@@ -315,12 +273,9 @@ export default function CarrinhoSidebar() {
               </div>
             </div>
 
-            <button
-              onClick={handleFinalizar}
-              disabled={finalizando}
+            <button onClick={handleFinalizar} disabled={finalizando}
               className={`btn btn-primary${finalizando ? ' btn-loading' : ''}`}
-              style={{ width: '100%' }}
-            >
+              style={{ width: '100%' }}>
               {finalizando ? 'Finalizando...' : 'Finalizar pedido'}
             </button>
           </div>
@@ -332,10 +287,8 @@ export default function CarrinhoSidebar() {
           position: 'fixed', bottom: 100, left: '50%', transform: 'translateX(-50%)',
           zIndex: 10000, background: COLORS.dark, color: COLORS.white,
           padding: '12px 24px', borderRadius: 999, fontSize: '14px', fontFamily: SANS,
-          boxShadow: theme.shadows.toast
-        }}>
-          {toast}
-        </div>
+          boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+        }}>{toast}</div>
       )}
     </>
   )

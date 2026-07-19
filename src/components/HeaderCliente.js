@@ -16,73 +16,41 @@ export default function HeaderCliente() {
     header: {
       background: COLORS.white,
       borderBottom: '1px solid ' + COLORS.border,
-      padding: '0 32px',
-      height: 64,
-      display: 'flex',
-      alignItems: 'center',
+      padding: '0 32px', height: 64,
+      display: 'flex', alignItems: 'center',
       fontFamily: SANS
     },
     container: {
-      maxWidth: 1200,
-      margin: '0 auto',
-      width: '100%',
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center'
+      maxWidth: 1200, margin: '0 auto', width: '100%',
+      display: 'flex', justifyContent: 'space-between', alignItems: 'center'
     },
     marca: {
-      fontFamily: SERIF,
-      fontSize: 22,
-      fontWeight: 700,
-      color: COLORS.dark,
-      textDecoration: 'none',
-      letterSpacing: '-0.5px',
-      whiteSpace: 'nowrap'
+      fontFamily: SERIF, fontSize: 22, fontWeight: 700,
+      color: COLORS.dark, textDecoration: 'none',
+      letterSpacing: '-0.5px', whiteSpace: 'nowrap'
     },
-    nav: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 24
-    },
+    nav: { display: 'flex', alignItems: 'center', gap: 24 },
     linkNav: {
-      color: COLORS.textSecondary,
-      textDecoration: 'none',
-      fontSize: '0.95rem',
-      fontWeight: 500,
-      fontFamily: SANS,
-      transition: 'color 0.2s'
+      color: COLORS.textSecondary, textDecoration: 'none',
+      fontSize: '0.95rem', fontWeight: 500,
+      fontFamily: SANS, transition: 'color 0.2s'
     },
-    grupoUsuario: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 16
-    },
+    grupoUsuario: { display: 'flex', alignItems: 'center', gap: 16 },
     avatarLink: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 8,
-      textDecoration: 'none',
-      color: 'inherit',
-      cursor: 'pointer',
-      transition: 'opacity 0.2s'
+      display: 'flex', alignItems: 'center', gap: 8,
+      textDecoration: 'none', color: 'inherit',
+      cursor: 'pointer', transition: 'opacity 0.2s'
     },
     nomeUsuario: {
-      fontSize: '0.95rem',
-      fontWeight: 600,
-      color: COLORS.dark,
-      fontFamily: SANS
+      fontSize: '0.95rem', fontWeight: 600,
+      color: COLORS.dark, fontFamily: SANS
     },
     botaoSair: {
-      background: 'none',
-      border: '1px solid ' + COLORS.coral,
-      borderRadius: 6,
-      padding: '6px 14px',
-      color: COLORS.coral,
-      cursor: 'pointer',
-      fontSize: '0.85rem',
-      fontWeight: 500,
-      fontFamily: SANS,
-      transition: 'all 0.2s'
+      background: 'none', border: '1px solid ' + COLORS.coral,
+      borderRadius: 6, padding: '6px 14px',
+      color: COLORS.coral, cursor: 'pointer',
+      fontSize: '0.85rem', fontWeight: 500,
+      fontFamily: SANS, transition: 'all 0.2s'
     }
   }
 
@@ -94,21 +62,17 @@ export default function HeaderCliente() {
         </Link>
 
         <nav style={estilos.nav}>
-          <Link href="/cardapio" style={estilos.linkNav}>
-            Cardapio
-          </Link>
+          <Link href="/cardapio" style={estilos.linkNav}>Cardapio</Link>
 
           {carregando ? (
             <span style={{ color: COLORS.textSecondary, fontSize: '0.95rem' }}>...</span>
           ) : usuario ? (
             <div style={estilos.grupoUsuario}>
-              <Link href="/pedidos" style={estilos.linkNav}>
-                Meus Pedidos
-              </Link>
+              <Link href="/pedidos" style={estilos.linkNav}>Meus Pedidos</Link>
 
               <Link href="/perfil" style={estilos.avatarLink}>
                 <svg width={32} height={32} viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-                  <circle cx="16" cy="16" r="15" fill={COLORS.coral} stroke={COLORS.coralDark || '#E55A5A'} strokeWidth="1" />
+                  <circle cx="16" cy="16" r="15" fill={COLORS.coral} stroke="#E55A5A" strokeWidth="1" />
                   <text x="16" y="21" textAnchor="middle" fontSize="16" fontWeight="bold" fill="white" fontFamily="Arial, sans-serif">
                     {primeiroNome.charAt(0).toUpperCase()}
                   </text>
@@ -116,26 +80,13 @@ export default function HeaderCliente() {
                 <span style={estilos.nomeUsuario}>{primeiroNome}</span>
               </Link>
 
-              <button
-                type="button"
-                onClick={logout}
-                style={estilos.botaoSair}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = COLORS.coral
-                  e.currentTarget.style.color = '#fff'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'transparent'
-                  e.currentTarget.style.color = COLORS.coral
-                }}
-              >
-                Sair
-              </button>
+              <button type="button" onClick={logout} style={estilos.botaoSair}
+                onMouseEnter={(e) => { e.currentTarget.style.background = COLORS.coral; e.currentTarget.style.color = '#fff' }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = COLORS.coral }}
+              >Sair</button>
             </div>
           ) : (
-            <Link href="/login" style={estilos.linkNav}>
-              Entrar
-            </Link>
+            <Link href="/login" style={estilos.linkNav}>Entrar</Link>
           )}
         </nav>
       </div>

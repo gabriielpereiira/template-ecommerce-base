@@ -44,7 +44,6 @@ export default function AdminPedidosPage() {
   const [pedidos, setPedidos] = useState([])
   const [loading, setLoading] = useState(true)
   const [filtroStatus, setFiltroStatus] = useState('todos')
-
   const [confirmPedidoId, setConfirmPedidoId] = useState(null)
   const [confirmNovoStatus, setConfirmNovoStatus] = useState(null)
   const [confirmEnviando, setConfirmEnviando] = useState(false)
@@ -129,27 +128,20 @@ export default function AdminPedidosPage() {
           Admin - Pedidos
         </h1>
 
-        {/* Filtros */}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 24 }}>
           {['todos', 'pendente', 'confirmado', 'preparando', 'pronto', 'saiu_entrega', 'entregue', 'cancelado'].map(status => (
-            <button
-              key={status}
-              onClick={() => setFiltroStatus(status)}
-              style={{
-                padding: '8px 16px', borderRadius: 999,
-                border: 'none', cursor: 'pointer',
-                background: filtroStatus === status ? COLORS.coral : COLORS.white,
-                color: filtroStatus === status ? COLORS.white : COLORS.textSecondary,
-                fontWeight: 600, fontSize: 13, fontFamily: SANS,
-                border: filtroStatus === status ? 'none' : '1px solid ' + COLORS.border
-              }}
-            >
+            <button key={status} onClick={() => setFiltroStatus(status)} style={{
+              padding: '8px 16px', borderRadius: 999, cursor: 'pointer',
+              background: filtroStatus === status ? COLORS.coral : COLORS.white,
+              color: filtroStatus === status ? COLORS.white : COLORS.textSecondary,
+              fontWeight: 600, fontSize: 13, fontFamily: SANS,
+              border: filtroStatus === status ? 'none' : '1px solid ' + COLORS.border
+            }}>
               {status === 'todos' ? 'Todos' : STATUS_LABELS[status]}
             </button>
           ))}
         </div>
 
-        {/* Lista */}
         {loading ? (
           <div style={{ textAlign: 'center', padding: 60, color: COLORS.textSecondary }}>Carregando...</div>
         ) : pedidosFiltrados.length === 0 ? (
@@ -159,14 +151,11 @@ export default function AdminPedidosPage() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {pedidosFiltrados.map(pedido => (
-              <div
-                key={pedido.id}
-                style={{
-                  background: COLORS.white, borderRadius: 12, padding: 20,
-                  border: '1px solid ' + COLORS.border,
-                  borderLeft: `4px solid ${getStatusColor(pedido.status)}`
-                }}
-              >
+              <div key={pedido.id} style={{
+                background: COLORS.white, borderRadius: 12, padding: 20,
+                border: '1px solid ' + COLORS.border,
+                borderLeft: `4px solid ${getStatusColor(pedido.status)}`
+              }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12, marginBottom: 8 }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
@@ -177,9 +166,7 @@ export default function AdminPedidosPage() {
                         padding: '4px 10px', borderRadius: 20,
                         background: getStatusColor(pedido.status),
                         color: '#fff', fontSize: 11, fontWeight: 700, fontFamily: SANS
-                      }}>
-                        {STATUS_LABELS[pedido.status] || pedido.status}
-                      </span>
+                      }}>{STATUS_LABELS[pedido.status] || pedido.status}</span>
                     </div>
                     <p style={{ fontFamily: SANS, fontSize: 13, color: COLORS.textSecondary, margin: '4px 0 0' }}>
                       {new Date(pedido.criado_em || pedido.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
@@ -200,7 +187,6 @@ export default function AdminPedidosPage() {
                   )}
                 </div>
 
-                {/* Acoes */}
                 <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
                   {pedido.status !== 'cancelado' && pedido.status !== 'entregue' && (
                     <>
@@ -242,7 +228,6 @@ export default function AdminPedidosPage() {
                   )}
                 </div>
 
-                {/* Detalhes expandiveis */}
                 {pedido.itens && Array.isArray(pedido.itens) && pedido.itens.length > 0 && (
                   <details style={{ marginTop: 16 }}>
                     <summary style={{ fontFamily: SANS, fontSize: 13, color: COLORS.coral, fontWeight: 600, cursor: 'pointer' }}>
@@ -280,14 +265,11 @@ export default function AdminPedidosPage() {
         )}
       </div>
 
-      {/* Modal de confirmacao */}
       {confirmPedidoId && confirmNovoStatus && (
         <div style={{
           position: 'fixed', inset: 0, zIndex: 99999,
-          background: 'rgba(45,52,54,0.5)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: 24
+          background: 'rgba(45,52,54,0.5)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24
         }} onClick={() => { setConfirmPedidoId(null); setConfirmNovoStatus(null) }}>
           <div onClick={e => e.stopPropagation()} style={{
             background: COLORS.white, borderRadius: 16, padding: 32,
@@ -300,22 +282,14 @@ export default function AdminPedidosPage() {
               Tem certeza que deseja alterar o status do pedido <strong>#{String(confirmPedidoId || '').slice(0, 8).toUpperCase()}</strong> para <strong style={{ color: getStatusColor(confirmNovoStatus) }}>{STATUS_LABELS[confirmNovoStatus] || confirmNovoStatus}</strong>?
             </p>
             <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
-              <button
-                onClick={() => { setConfirmPedidoId(null); setConfirmNovoStatus(null) }}
-                style={{
-                  padding: '10px 24px', borderRadius: 999,
-                  border: '1.5px solid ' + COLORS.border,
-                  background: 'transparent', color: COLORS.textSecondary,
-                  fontSize: 14, fontWeight: 600, fontFamily: SANS, cursor: 'pointer'
-                }}
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleConfirmarAlteracao}
-                disabled={confirmEnviando}
-                className={`btn btn-primary${confirmEnviando ? ' btn-loading' : ''}`}
-              >
+              <button onClick={() => { setConfirmPedidoId(null); setConfirmNovoStatus(null) }} style={{
+                padding: '10px 24px', borderRadius: 999,
+                border: '1.5px solid ' + COLORS.border,
+                background: 'transparent', color: COLORS.textSecondary,
+                fontSize: 14, fontWeight: 600, fontFamily: SANS, cursor: 'pointer'
+              }}>Cancelar</button>
+              <button onClick={handleConfirmarAlteracao} disabled={confirmEnviando}
+                className={`btn btn-primary${confirmEnviando ? ' btn-loading' : ''}`}>
                 {confirmEnviando ? 'Alterando...' : 'Confirmar'}
               </button>
             </div>
